@@ -81,6 +81,25 @@ function initEvents() {
         if (!searchWrapper.contains(e.target)) dropdown.style.display = 'none';
     });
 
+    // Mobile search
+    const mobileSearch = document.getElementById('mobile-symbol-search');
+    if (mobileSearch) {
+        mobileSearch.addEventListener('keydown', e => {
+            if (e.key === 'Enter') {
+                let sym = mobileSearch.value.trim().toUpperCase();
+                if (sym && !sym.includes('.')) sym += '.NS';
+                if (sym) {
+                    currentSymbol = sym;
+                    loadStock(sym, currentTimeframe);
+                    mobileSearch.value = '';
+                    mobileSearch.blur();
+                    document.getElementById('mobile-search').classList.remove('show');
+                    if (currentView !== 'chart') switchView('chart');
+                }
+            }
+        });
+    }
+
     window.selectSearchSymbol = function(sym) {
         currentSymbol = sym;
         loadStock(sym, currentTimeframe);

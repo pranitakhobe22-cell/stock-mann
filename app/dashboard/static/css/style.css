@@ -1811,42 +1811,294 @@ textarea {
 }
 
 /* ═══ RESPONSIVE ═══ */
+/* ═══ TABLET ═══ */
 @media (max-width: 1200px) {
     .app-layout {
         grid-template-columns: 200px 1fr 250px;
     }
-
     .scanner-summary {
         grid-template-columns: repeat(3, 1fr);
     }
 }
 
+/* ═══ MOBILE ═══ */
 @media (max-width: 900px) {
+    /* Layout: single column, no sidebar/right panel */
     .app-layout {
         grid-template-columns: 1fr;
+        height: auto;
     }
-
     .sidebar,
     .right-panel {
         display: none;
     }
+    .ticker-bar {
+        display: none;
+    }
+    .main-content {
+        overflow-y: auto;
+        height: calc(100vh - var(--topbar-h));
+    }
 
+    /* Topbar: scrollable nav */
+    .topbar {
+        height: auto;
+        min-height: var(--topbar-h);
+        flex-wrap: wrap;
+        padding: 6px 10px;
+        gap: 6px;
+    }
+    .topbar-left {
+        width: 100%;
+        justify-content: space-between;
+    }
+    .topbar-right {
+        display: none;
+    }
+    .topbar-nav {
+        display: flex;
+        gap: 2px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        flex-shrink: 0;
+    }
+    .topbar-nav::-webkit-scrollbar {
+        display: none;
+    }
+    .nav-btn {
+        font-size: 10px;
+        padding: 5px 8px;
+        white-space: nowrap;
+        gap: 3px;
+    }
+    .nav-btn svg {
+        width: 12px;
+        height: 12px;
+    }
+    .logo-text {
+        font-size: 11px;
+        letter-spacing: 1.5px;
+    }
+
+    /* Symbol bar: stack on mobile */
+    .symbol-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 8px 12px;
+    }
+    .symbol-bar-center {
+        width: 100%;
+    }
+    .timeframe-bar {
+        width: 100%;
+        justify-content: space-between;
+    }
+    .chart-tools {
+        display: none;
+    }
+    .signal-chip {
+        align-self: flex-start;
+    }
+
+    /* Charts: full width */
+    .chart-wrapper {
+        height: 280px;
+    }
     .subchart-row {
         grid-template-columns: 1fr;
         height: auto;
     }
-
-    .scanner-summary {
-        grid-template-columns: repeat(2, 1fr);
+    .subchart-panel {
+        height: 140px;
     }
 
-    .bt-stats,
+    /* Scanner */
+    .scanner-summary {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+    }
+    .sum-card {
+        padding: 10px 6px;
+    }
+    .sum-num {
+        font-size: 18px;
+    }
+    .sum-label {
+        font-size: 8px;
+    }
+    .scanner-tabs {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        flex-wrap: nowrap;
+    }
+    .scanner-tabs::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* Tables: horizontal scroll */
+    .table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    .data-table {
+        min-width: 600px;
+    }
+
+    /* Backtest */
+    .bt-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .bt-controls {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+    .bt-field {
+        min-width: 80px;
+    }
+    .bt-detail-row {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    /* Portfolio */
     .portfolio-cards {
         grid-template-columns: repeat(2, 1fr);
     }
 
-    .ticker-bar {
-        display: none;
+    /* Heatmap */
+    .heatmap-container {
+        grid-template-columns: repeat(3, 1fr) !important;
+    }
+
+    /* Panel headers */
+    .panel-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    .panel-header h2 {
+        font-size: 16px;
+    }
+    .panel-actions {
+        width: 100%;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    /* Profile view */
+    .profile-page {
+        padding: 12px;
+    }
+    .profile-header-card {
+        flex-direction: column;
+        text-align: center;
+        padding: 20px 16px;
+        gap: 14px;
+    }
+    .profile-header-info {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    .profile-stats-row {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+    }
+    .profile-stat-num {
+        font-size: 20px;
+    }
+    .profile-stat-label {
+        font-size: 8px;
+    }
+    .profile-two-col {
+        grid-template-columns: 1fr;
+    }
+    .profile-form-row {
+        grid-template-columns: 1fr;
+    }
+    .profile-avatar {
+        width: 64px;
+        height: 64px;
+        font-size: 24px;
+    }
+
+    /* Compare bar */
+    .compare-bar {
+        flex-wrap: wrap;
+    }
+
+    /* Modals */
+    .modal-box {
+        width: 92vw !important;
+        max-width: 400px;
+    }
+
+    /* Fear & Greed */
+    .fg-full {
+        padding: 16px;
+    }
+    .fg-labels {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 4px;
+    }
+}
+
+/* Mobile search bar */
+.mobile-search-btn {
+    display: none;
+}
+.mobile-search-bar {
+    display: none;
+    width: 100%;
+    padding: 0 10px 6px;
+}
+.mobile-search-bar.show {
+    display: block;
+}
+.mobile-search-bar input {
+    width: 100%;
+    background: var(--bg-3);
+    border: 1px solid var(--border-1);
+    color: var(--t1);
+    padding: 8px 12px;
+    border-radius: 5px;
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+}
+.mobile-search-bar input:focus {
+    border-color: var(--blue);
+}
+@media (max-width: 900px) {
+    .mobile-search-btn {
+        display: flex;
+    }
+}
+
+/* ═══ SMALL PHONES ═══ */
+@media (max-width: 480px) {
+    .scanner-summary {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .profile-stats-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .heatmap-container {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+    .steps {
+        grid-template-columns: 1fr;
+    }
+    .symbol-info {
+        flex-direction: column;
+        gap: 4px;
+    }
+    .price-group {
+        font-size: 14px;
     }
 }
 
