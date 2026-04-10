@@ -1,0 +1,16 @@
+# Environments & Cache
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Database and Secrets
+stock_mann.db
+.env
+
+# IDE
+.idea/
+.vscode/
+*.log
+.DS_Store

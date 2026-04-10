@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StockMann -- Real-Time Indian Stock Market Intelligence</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #050508;
+            --bg1: rgba(12, 14, 22, 0.85);
+            --bg2: rgba(18, 21, 32, 0.8);
+            --bg3: rgba(26, 30, 45, 0.7);
+            --t1: #E8ECF1;
+            --t2: #A0A7B8;
+            --t3: #6B7280;
+            --t4: #4B5263;
+            --green: #00E676;
+            --red: #FF1744;
+            --blue: #2979FF;
+            --purple: #8B5CF6;
+            --amber: #F59E0B;
+            --cyan: #06B6D4;
+            --pink: #EC4899;
+            --sans: 'Inter', -apple-system, sans-serif;
+            --mono: 'JetBrains Mono', monospace;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: var(--sans);
+            background: var(--bg);
+            color: var(--t1);
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #1E2435; border-radius: 3px; }
+
+        /* ========== PARTICLE CANVAS ========== */
+        #particle-canvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* ========== MOVING GRID BACKGROUND ========== */
+        .grid-bg {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image:
+                linear-gradient(rgba(41,121,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(41,121,255,0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            z-index: 0;
+            animation: gridMove 20s linear infinite;
+        }
+        @keyframes gridMove {
+            0% { background-position: 0 0; }
+            100% { background-position: 60px 60px; }
+        }
+
+        /* ========== FLOATING ORBS ========== */
+        .orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            pointer-events: none;
+            z-index: 0;
+        }
+        .orb-1 {
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(41,121,255,0.15), transparent 70%);
+            top: -200px; left: -100px;
+            animation: orbFloat1 15s ease-in-out infinite alternate;
+        }
+        .orb-2 {
+            width: 500px; height: 500px;
+            background: radial-gradient(circle, rgba(139,92,246,0.12), transparent 70%);
+            top: 40%; right: -150px;
+            animation: orbFloat2 18s ease-in-out infinite alternate;
+        }
+        .orb-3 {
+            width: 450px; height: 450px;
+            background: radial-gradient(circle, rgba(0,230,118,0.08), transparent 70%);
+            bottom: -100px; left: 30%;
+            animation: orbFloat3 12s ease-in-out infinite alternate;
+        }
+        .orb-4 {
+            width: 350px; height: 350px;
+            background: radial-gradient(circle, rgba(236,72,153,0.08), transparent 70%);
+            top: 60%; left: -100px;
+            animation: orbFloat1 20s ease-in-out infinite alternate-reverse;
+        }
+        @keyframes orbFloat1 { 0%{transform:translate(0,0) scale(1)} 100%{transform:translate(80px,60px) scale(1.1)} }
+        @keyframes orbFloat2 { 0%{transform:translate(0,0) scale(1)} 100%{transform:translate(-60px,80px) scale(0.9)} }
+        @keyframes orbFloat3 { 0%{transform:translate(0,0) scale(1)} 100%{transform:translate(50px,-70px) scale(1.15)} }
+
+        /* ========== NAVBAR ========== */
+        .navbar {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 48px;
+            background: rgba(5,5,8,0.6);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            transition: all 0.3s;
+        }
+        .navbar.scrolled {
+            background: rgba(5,5,8,0.92);
+            border-bottom-color: rgba(255,255,255,0.06);
+            box-shadow: 0 4px 30px rgba(0,0,0,0.4);
+        }
+        .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+        .nav-logo svg { width: 28px; height: 28px; }
+        .nav-logo-text {
+            font-size: 14px; font-weight: 800; color: var(--t1);
+            letter-spacing: 3px;
+        }
+        .nav-links { display: flex; gap: 36px; align-items: center; }
+        .nav-links a {
+            font-size: 13px; font-weight: 500; color: var(--t3);
+            text-decoration: none; transition: color 0.2s;
+            position: relative;
+        }
+        .nav-links a::after {
+            content: '';
+            position: absolute; bottom: -4px; left: 0; right: 0;
+            height: 2px; background: var(--blue);
+            transform: scaleX(0); transition: transform 0.3s;
+        }
+        .nav-links a:hover { color: var(--t1); }
+        .nav-links a:hover::after { transform: scaleX(1); }
+        .nav-actions { display: flex; gap: 10px; align-items: center; }
+        .btn-outline {
+            background: none;
+            border: 1px solid rgba(255,255,255,0.1);
+            color: var(--t2);
+            padding: 9px 22px;
+            border-radius: 8px;
+            font-size: 13px; font-weight: 600;
+            cursor: pointer; text-decoration: none;
+            transition: all 0.25s;
+        }
+        .btn-outline:hover {
+            border-color: var(--blue);
+            color: var(--t1);
+            box-shadow: 0 0 20px rgba(41,121,255,0.15);
+        }
+        .btn-glow {
+            background: linear-gradient(135deg, var(--blue), var(--purple));
+            border: none;
+            color: #fff;
+            padding: 9px 24px;
+            border-radius: 8px;
+            font-size: 13px; font-weight: 700;
+            cursor: pointer; text-decoration: none;
+            transition: all 0.25s;
+            box-shadow: 0 4px 20px rgba(41,121,255,0.3);
+        }
+        .btn-glow:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 30px rgba(41,121,255,0.5);
+        }
+
+        /* ========== HERO ========== */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 140px 24px 80px;
+            position: relative;
+            z-index: 1;
+        }
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(41,121,255,0.08);
+            border: 1px solid rgba(41,121,255,0.15);
+            padding: 7px 18px;
+            border-radius: 24px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--blue);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 32px;
+        }
+        .hero-badge .dot {
+            width: 6px; height: 6px;
+            background: var(--green);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+            box-shadow: 0 0 8px var(--green);
+        }
+        @keyframes pulse { 0%,100%{opacity:1;box-shadow:0 0 8px var(--green)} 50%{opacity:0.4;box-shadow:0 0 2px var(--green)} }
+
+        .hero h1 {
+            font-size: 72px;
+            font-weight: 900;
+            line-height: 1.05;
+            letter-spacing: -3px;
+            max-width: 900px;
+            margin-bottom: 28px;
+        }
+        .hero h1 .gradient {
+            background: linear-gradient(135deg, #2979FF 0%, #8B5CF6 40%, #EC4899 70%, #F59E0B 100%);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradientShift 5s ease infinite;
+        }
+        @keyframes gradientShift {
+            0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%}
+        }
+        .hero p {
+            font-size: 18px;
+            color: var(--t3);
+            max-width: 580px;
+            line-height: 1.75;
+            margin-bottom: 44px;
+            font-weight: 400;
+        }
+        .hero-cta { display: flex; gap: 16px; align-items: center; margin-bottom: 72px; }
+        .btn-hero {
+            padding: 16px 40px;
+            font-size: 15px;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s cubic-bezier(0.25,0.46,0.45,0.94);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .btn-hero.primary {
+            background: linear-gradient(135deg, var(--blue) 0%, #6C63FF 100%);
+            color: #fff;
+            border: none;
+            box-shadow: 0 8px 32px rgba(41,121,255,0.4), inset 0 1px 0 rgba(255,255,255,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-hero.primary::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, transparent, rgba(255,255,255,0.15), transparent);
+            transform: translateX(-100%);
+            transition: transform 0.6s;
+        }
+        .btn-hero.primary:hover::before { transform: translateX(100%); }
+        .btn-hero.primary:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 16px 48px rgba(41,121,255,0.55), inset 0 1px 0 rgba(255,255,255,0.15);
+        }
+        .btn-hero.secondary {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: var(--t2);
+            backdrop-filter: blur(10px);
+        }
+        .btn-hero.secondary:hover {
+            border-color: rgba(255,255,255,0.2);
+            color: var(--t1);
+            background: rgba(255,255,255,0.07);
+            transform: translateY(-2px);
+        }
+
+        /* ========== TERMINAL PREVIEW ========== */
+        .hero-preview {
+            width: 100%;
+            max-width: 1100px;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.06);
+            box-shadow:
+                0 60px 140px rgba(0,0,0,0.7),
+                0 0 80px rgba(41,121,255,0.05),
+                inset 0 1px 0 rgba(255,255,255,0.04);
+            position: relative;
+            transform: perspective(1200px) rotateX(2deg);
+            transition: transform 0.5s cubic-bezier(0.25,0.46,0.45,0.94);
+        }
+        .hero-preview:hover {
+            transform: perspective(1200px) rotateX(0deg) translateY(-8px);
+            box-shadow:
+                0 80px 160px rgba(0,0,0,0.8),
+                0 0 120px rgba(41,121,255,0.08),
+                inset 0 1px 0 rgba(255,255,255,0.06);
+        }
+        .preview-bar {
+            background: rgba(13,16,23,0.95);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+        .preview-dots { display: flex; gap: 7px; }
+        .preview-dot { width: 11px; height: 11px; border-radius: 50%; }
+        .preview-url {
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--t4);
+            margin-left: 14px;
+            background: rgba(20,23,32,0.8);
+            padding: 4px 12px;
+            border-radius: 4px;
+            border: 1px solid rgba(255,255,255,0.04);
+        }
+        .preview-live {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--green);
+            letter-spacing: 0.5px;
+        }
+        .preview-live-dot {
+            width: 5px; height: 5px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 6px var(--green);
+            animation: pulse 2s infinite;
+        }
+        .preview-img {
+            width: 100%;
+            background: rgba(8,10,16,0.9);
+            display: grid;
+            grid-template-columns: 180px 1fr 200px;
+            height: 420px;
+            position: relative;
+            overflow: hidden;
+        }
+        /* Mock sidebar */
+        .mock-sidebar { border-right: 1px solid rgba(255,255,255,0.04); padding: 12px 0; }
+        .mock-sidebar-title { font-size: 9px; font-weight: 700; color: var(--t4); letter-spacing: 1.2px; padding: 0 14px; margin-bottom: 10px; }
+        .mock-wl-item {
+            display: flex; justify-content: space-between;
+            padding: 8px 14px; font-size: 11px;
+            border-left: 2px solid transparent;
+            transition: background 0.2s;
+        }
+        .mock-wl-item.active { background: rgba(20,23,32,0.8); border-left-color: var(--blue); }
+        .mock-wl-sym { font-weight: 600; color: var(--t1); }
+        .mock-wl-price { font-family: var(--mono); font-size: 10px; }
+        /* Mock chart */
+        .mock-chart-area { display: flex; flex-direction: column; }
+        .mock-chart-header {
+            padding: 8px 16px;
+            display: flex; align-items: center; gap: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            font-size: 14px; font-weight: 700;
+        }
+        .mock-badge {
+            font-size: 8px; font-weight: 700; padding: 2px 6px; border-radius: 2px;
+            font-family: var(--mono);
+            background: rgba(34,197,94,0.12); color: var(--green);
+        }
+        .mock-tf { margin-left: auto; display: flex; gap: 2px; }
+        .mock-tf span { font-size: 9px; padding: 3px 7px; border-radius: 3px; color: var(--t4); font-weight: 600; font-family: var(--mono); }
+        .mock-tf span.active { background: rgba(38,42,55,0.8); color: var(--t1); }
+        .mock-chart-svg { flex: 1; padding: 8px; }
+        .mock-chart-svg svg { width: 100%; height: 100%; }
+        /* Mock right */
+        .mock-right { border-left: 1px solid rgba(255,255,255,0.04); padding: 12px; }
+        .mock-right-title { font-size: 8px; font-weight: 700; color: var(--t4); letter-spacing: 1.2px; margin-bottom: 10px; }
+        .mock-ind { display: flex; justify-content: space-between; padding: 5px 6px; background: rgba(20,23,32,0.6); border-radius: 3px; margin-bottom: 3px; font-size: 10px; }
+        .mock-ind-label { color: var(--t3); }
+        .mock-ind-val { font-family: var(--mono); font-weight: 600; }
+
+        /* Chart line animation */
+        .line-draw {
+            stroke-dasharray: 2000;
+            stroke-dashoffset: 2000;
+            animation: drawLine 3s ease forwards 0.8s;
+        }
+        @keyframes drawLine { to { stroke-dashoffset: 0; } }
+
+        /* ========== LIVE TICKER ========== */
+        .live-ticker {
+            position: relative;
+            z-index: 1;
+            overflow: hidden;
+            background: rgba(8,10,16,0.7);
+            border-top: 1px solid rgba(255,255,255,0.03);
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            backdrop-filter: blur(10px);
+            padding: 14px 0;
+        }
+        .ticker-track {
+            display: flex;
+            gap: 48px;
+            animation: tickerScroll 30s linear infinite;
+            white-space: nowrap;
+        }
+        @keyframes tickerScroll { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+        .ticker-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+        .ticker-sym { font-size: 12px; font-weight: 700; color: var(--t1); }
+        .ticker-price { font-size: 12px; font-family: var(--mono); color: var(--t2); }
+        .ticker-chg { font-size: 11px; font-family: var(--mono); font-weight: 600; }
+
+        /* ========== STATS BAR ========== */
+        .stats-bar {
+            position: relative;
+            z-index: 1;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1px;
+            background: rgba(30,34,48,0.5);
+        }
+        .stat-item {
+            background: rgba(8,10,16,0.8);
+            backdrop-filter: blur(10px);
+            padding: 40px 24px;
+            text-align: center;
+            transition: background 0.3s;
+        }
+        .stat-item:hover { background: rgba(15,18,28,0.9); }
+        .stat-num {
+            font-size: 42px;
+            font-weight: 900;
+            font-family: var(--mono);
+            background: linear-gradient(135deg, var(--t1), var(--blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .stat-label {
+            font-size: 11px;
+            color: var(--t4);
+            margin-top: 8px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+
+        /* ========== FEATURES ========== */
+        .features-section {
+            position: relative;
+            z-index: 1;
+            padding: 120px 48px;
+            max-width: 1240px;
+            margin: 0 auto;
+        }
+        .section-tag {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--blue);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .section-tag::before {
+            content: '';
+            width: 30px; height: 2px;
+            background: linear-gradient(90deg, var(--blue), transparent);
+        }
+        .section-title {
+            font-size: 44px;
+            font-weight: 900;
+            letter-spacing: -1.5px;
+            margin-bottom: 16px;
+            line-height: 1.15;
+        }
+        .section-desc {
+            font-size: 16px;
+            color: var(--t3);
+            max-width: 520px;
+            line-height: 1.7;
+            margin-bottom: 64px;
+        }
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        .feature-card {
+            background: rgba(12,14,22,0.6);
+            border: 1px solid rgba(255,255,255,0.04);
+            border-radius: 16px;
+            padding: 40px 32px;
+            transition: all 0.4s cubic-bezier(0.25,0.46,0.45,0.94);
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--blue), var(--purple), transparent);
+            opacity: 0;
+            transition: opacity 0.4s;
+        }
+        .feature-card::after {
+            content: '';
+            position: absolute;
+            top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background: radial-gradient(circle at var(--mx, 50%) var(--my, 50%), rgba(41,121,255,0.06), transparent 50%);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .feature-card:hover {
+            border-color: rgba(41,121,255,0.2);
+            transform: translateY(-8px);
+            box-shadow: 0 24px 64px rgba(0,0,0,0.4), 0 0 40px rgba(41,121,255,0.05);
+        }
+        .feature-card:hover::before { opacity: 1; }
+        .feature-card:hover::after { opacity: 1; }
+        .feature-icon {
+            width: 56px; height: 56px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+            position: relative;
+        }
+        .feature-icon::after {
+            content: '';
+            position: absolute;
+            inset: -6px;
+            border-radius: 18px;
+            background: inherit;
+            opacity: 0.2;
+            filter: blur(12px);
+        }
+        .feature-icon svg { width: 24px; height: 24px; position: relative; z-index: 1; }
+        .fi-blue { background: rgba(41,121,255,0.15); color: var(--blue); }
+        .fi-green { background: rgba(0,230,118,0.15); color: var(--green); }
+        .fi-purple { background: rgba(139,92,246,0.15); color: var(--purple); }
+        .fi-amber { background: rgba(245,158,11,0.15); color: var(--amber); }
+        .fi-red { background: rgba(255,23,68,0.15); color: var(--red); }
+        .fi-cyan { background: rgba(6,182,212,0.15); color: var(--cyan); }
+        .feature-card h3 {
+            font-size: 18px; font-weight: 700;
+            margin-bottom: 12px; letter-spacing: -0.3px;
+        }
+        .feature-card p { font-size: 13px; color: var(--t3); line-height: 1.75; }
+        .feature-tag {
+            display: inline-block;
+            margin-top: 16px;
+            font-size: 10px; font-weight: 700;
+            color: var(--t4);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            padding: 4px 10px;
+            background: rgba(255,255,255,0.04);
+            border-radius: 4px;
+            border: 1px solid rgba(255,255,255,0.04);
+        }
+
+        /* ========== HOW IT WORKS ========== */
+        .how-section {
+            position: relative;
+            z-index: 1;
+            padding: 100px 48px;
+            background: rgba(8,10,16,0.5);
+            backdrop-filter: blur(5px);
+            border-top: 1px solid rgba(255,255,255,0.03);
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+        }
+        .how-inner { max-width: 1100px; margin: 0 auto; }
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+            margin-top: 64px;
+            position: relative;
+        }
+        .steps::before {
+            content: '';
+            position: absolute;
+            top: 32px; left: 60px; right: 60px;
+            height: 2px;
+            background: linear-gradient(90deg, var(--blue), var(--purple), var(--pink), var(--green));
+            opacity: 0.2;
+        }
+        .step {
+            text-align: center;
+            position: relative;
+            padding: 0 12px;
+        }
+        .step-num {
+            width: 64px; height: 64px;
+            border-radius: 50%;
+            background: rgba(12,14,22,0.9);
+            border: 2px solid rgba(41,121,255,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            font-weight: 900;
+            font-family: var(--mono);
+            color: var(--blue);
+            margin: 0 auto 20px;
+            position: relative;
+            z-index: 1;
+            box-shadow: 0 0 30px rgba(41,121,255,0.1);
+            transition: all 0.3s;
+        }
+        .step:hover .step-num {
+            border-color: var(--blue);
+            box-shadow: 0 0 40px rgba(41,121,255,0.25);
+            transform: scale(1.1);
+        }
+        .step h4 { font-size: 16px; font-weight: 700; margin-bottom: 10px; }
+        .step p { font-size: 13px; color: var(--t3); line-height: 1.7; }
+
+        /* ========== TECH STACK ========== */
+        .tech-section {
+            position: relative;
+            z-index: 1;
+            padding: 100px 48px;
+            max-width: 1100px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .tech-grid {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            flex-wrap: wrap;
+            margin-top: 48px;
+        }
+        .tech-badge {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 24px;
+            background: rgba(12,14,22,0.6);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--t2);
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+        }
+        .tech-badge:hover {
+            border-color: rgba(41,121,255,0.2);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px rgba(0,0,0,0.3);
+        }
+        .tech-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+        }
+
+        /* ========== CTA ========== */
+        .cta-section {
+            position: relative;
+            z-index: 1;
+            padding: 100px 48px 40px;
+            text-align: center;
+            overflow: hidden;
+        }
+        .cta-section::before {
+            content: '';
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(41,121,255,0.08), transparent 60%);
+            pointer-events: none;
+        }
+        .cta-section h2 {
+            font-size: 48px;
+            font-weight: 900;
+            margin-bottom: 18px;
+            letter-spacing: -1.5px;
+        }
+        .cta-section h2 .gradient {
+            background: linear-gradient(135deg, var(--blue), var(--purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .cta-section p {
+            font-size: 16px;
+            color: var(--t3);
+            margin-bottom: 40px;
+            max-width: 480px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.7;
+        }
+
+        /* ========== FOOTER ========== */
+        .footer {
+            position: relative;
+            z-index: 1;
+            padding: 16px 48px;
+            border-top: 1px solid rgba(255,255,255,0.04);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(5,5,8,0.8);
+        }
+        .footer-left { font-size: 12px; color: var(--t4); }
+        .footer-credits {
+            font-size: 12px; color: var(--t4);
+            font-weight: 600; display: flex; gap: 6px; align-items: center;
+        }
+        .footer-credits span.name { color: var(--t3); }
+        .footer-credits span.sep { color: var(--t4); }
+        .footer-links { display: flex; gap: 24px; }
+        .footer-links a { font-size: 12px; color: var(--t4); text-decoration: none; transition: color 0.2s; }
+        .footer-links a:hover { color: var(--t2); }
+
+        /* ========== SCROLL ANIMATIONS ========== */
+        .reveal {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: all 0.8s cubic-bezier(0.25,0.46,0.45,0.94);
+        }
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .reveal-d1 { transition-delay: 0.1s; }
+        .reveal-d2 { transition-delay: 0.2s; }
+        .reveal-d3 { transition-delay: 0.3s; }
+        .reveal-d4 { transition-delay: 0.4s; }
+        .reveal-d5 { transition-delay: 0.5s; }
+        .reveal-d6 { transition-delay: 0.6s; }
+
+        /* Initial hero animations (no scroll needed) */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(30px);
+            animation: fadeIn 0.8s ease forwards;
+        }
+        .fade-in-d1 { animation-delay: 0.15s; }
+        .fade-in-d2 { animation-delay: 0.3s; }
+        .fade-in-d3 { animation-delay: 0.45s; }
+        .fade-in-d4 { animation-delay: 0.6s; }
+        @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
+
+        /* ========== RESPONSIVE ========== */
+        @media (max-width: 1024px) {
+            .features-grid { grid-template-columns: repeat(2, 1fr); }
+            .hero h1 { font-size: 52px; }
+        }
+        @media (max-width: 768px) {
+            .navbar { padding: 12px 20px; }
+            .nav-links { display: none; }
+            .hero h1 { font-size: 38px; letter-spacing: -1.5px; }
+            .hero p { font-size: 15px; }
+            .stats-bar { grid-template-columns: repeat(2, 1fr); }
+            .features-grid { grid-template-columns: 1fr; }
+            .steps { grid-template-columns: repeat(2, 1fr); }
+            .steps::before { display: none; }
+            .features-section, .how-section, .cta-section, .tech-section { padding: 60px 20px; }
+            .hero-preview { display: none; }
+            .section-title { font-size: 32px; }
+            .cta-section h2 { font-size: 32px; }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- VFX Layers -->
+    <canvas id="particle-canvas"></canvas>
+    <div class="grid-bg"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+    <div class="orb orb-4"></div>
+
+    <!-- NAVBAR -->
+    <nav class="navbar" id="navbar">
+        <a href="/" class="nav-logo">
+            <svg viewBox="0 0 24 24" fill="none">
+                <path d="M3 17L7 12L11 15L21 5" stroke="url(#g1)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <defs><linearGradient id="g1" x1="3" y1="5" x2="21" y2="17"><stop stop-color="#8B5CF6"/><stop offset="1" stop-color="#2979FF"/></linearGradient></defs>
+            </svg>
+            <span class="nav-logo-text">STOCKMANN</span>
+        </a>
+        <div class="nav-links">
+            <a href="#features">Features</a>
+            <a href="#how">How It Works</a>
+            <a href="#tech">Tech Stack</a>
+        </div>
+        <div class="nav-actions" id="nav-actions">
+            <a href="/login" class="btn-outline">Sign In</a>
+            <a href="/login" class="btn-glow">Get Started</a>
+        </div>
+    </nav>
+
+    <!-- HERO -->
+    <section class="hero">
+        <div class="hero-badge fade-in">
+            <span class="dot"></span>
+            LIVE MARKET DATA &mdash; NSE
+        </div>
+        <h1 class="fade-in fade-in-d1">
+            Real-Time<br><span class="gradient">Stock Intelligence</span><br>for Indian Markets
+        </h1>
+        <p class="fade-in fade-in-d2">
+            Professional-grade technical analysis, AI-powered signals, backtesting, and portfolio management &mdash; all in one terminal built for the Indian stock market.
+        </p>
+        <div class="hero-cta fade-in fade-in-d3">
+            <a href="/login" class="btn-hero primary" id="hero-cta-btn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                Get Started Free
+            </a>
+            <a href="/login" class="btn-hero secondary" id="hero-login-btn">Sign In</a>
+            <a href="#features" class="btn-hero secondary">Explore Features</a>
+        </div>
+        <div class="hero-preview fade-in fade-in-d4">
+            <div class="preview-bar">
+                <div class="preview-dots">
+                    <div class="preview-dot" style="background:#EF4444"></div>
+                    <div class="preview-dot" style="background:#F59E0B"></div>
+                    <div class="preview-dot" style="background:#22C55E"></div>
+                </div>
+                <span class="preview-url">stockmann / terminal</span>
+                <div class="preview-live"><span class="preview-live-dot"></span>LIVE</div>
+            </div>
+            <div class="preview-img">
+                <!-- Mock Sidebar -->
+                <div class="mock-sidebar">
+                    <div class="mock-sidebar-title">WATCHLIST</div>
+                    <div class="mock-wl-item active"><span class="mock-wl-sym">RELIANCE</span><span class="mock-wl-price" style="color:#22C55E">1,330</span></div>
+                    <div class="mock-wl-item"><span class="mock-wl-sym">TCS</span><span class="mock-wl-price" style="color:#22C55E">3,542</span></div>
+                    <div class="mock-wl-item"><span class="mock-wl-sym">INFY</span><span class="mock-wl-price" style="color:#EF4444">1,487</span></div>
+                    <div class="mock-wl-item"><span class="mock-wl-sym">HDFC BANK</span><span class="mock-wl-price" style="color:#EF4444">1,831</span></div>
+                    <div class="mock-wl-item"><span class="mock-wl-sym">ICICI BANK</span><span class="mock-wl-price" style="color:#22C55E">1,285</span></div>
+                    <div class="mock-wl-item"><span class="mock-wl-sym">ITC</span><span class="mock-wl-price" style="color:#22C55E">428</span></div>
+                    <div class="mock-wl-item"><span class="mock-wl-sym">SBIN</span><span class="mock-wl-price" style="color:#EF4444">780</span></div>
+                    <div class="mock-wl-item"><span class="mock-wl-sym">BHARTI</span><span class="mock-wl-price" style="color:#22C55E">1,692</span></div>
+                    <div class="mock-wl-item"><span class="mock-wl-sym">KOTAKBANK</span><span class="mock-wl-price" style="color:#22C55E">1,923</span></div>
+                    <div class="mock-wl-item"><span class="mock-wl-sym">LT</span><span class="mock-wl-price" style="color:#EF4444">3,156</span></div>
+                    <div class="mock-wl-item"><span class="mock-wl-sym">MARUTI</span><span class="mock-wl-price" style="color:#22C55E">11,845</span></div>
+                </div>
+                <!-- Mock Chart -->
+                <div class="mock-chart-area">
+                    <div class="mock-chart-header">
+                        RELIANCE <span style="font-size:8px;color:#4B5263;font-weight:600;letter-spacing:0.5px;background:rgba(30,34,48,0.8);padding:2px 5px;border-radius:2px">NSE</span>
+                        <span style="font-family:var(--mono);font-size:15px;color:var(--t1);margin-left:8px">1,330.00</span>
+                        <span style="font-family:var(--mono);font-size:11px;color:#EF4444">-1.42%</span>
+                        <span class="mock-badge">SELL Weak</span>
+                        <div class="mock-tf"><span>1m</span><span>5m</span><span>15m</span><span>1H</span><span class="active">1D</span></div>
+                    </div>
+                    <div class="mock-chart-svg">
+                        <svg viewBox="0 0 600 260" preserveAspectRatio="none">
+                            <line x1="0" y1="65" x2="600" y2="65" stroke="rgba(28,32,48,0.5)" stroke-width="0.5"/>
+                            <line x1="0" y1="130" x2="600" y2="130" stroke="rgba(28,32,48,0.5)" stroke-width="0.5"/>
+                            <line x1="0" y1="195" x2="600" y2="195" stroke="rgba(28,32,48,0.5)" stroke-width="0.5"/>
+                            <g>
+                                <line x1="25" y1="200" x2="25" y2="170" stroke="#22C55E" stroke-width="1"/><rect x="21" y="180" width="8" height="15" rx="0.5" fill="#22C55E"/>
+                                <line x1="55" y1="190" x2="55" y2="155" stroke="#22C55E" stroke-width="1"/><rect x="51" y="165" width="8" height="18" rx="0.5" fill="#22C55E"/>
+                                <line x1="85" y1="180" x2="85" y2="145" stroke="#EF4444" stroke-width="1"/><rect x="81" y="150" width="8" height="20" rx="0.5" fill="#EF4444"/>
+                                <line x1="115" y1="170" x2="115" y2="135" stroke="#22C55E" stroke-width="1"/><rect x="111" y="140" width="8" height="22" rx="0.5" fill="#22C55E"/>
+                                <line x1="145" y1="160" x2="145" y2="125" stroke="#EF4444" stroke-width="1"/><rect x="141" y="130" width="8" height="18" rx="0.5" fill="#EF4444"/>
+                                <line x1="175" y1="150" x2="175" y2="115" stroke="#22C55E" stroke-width="1"/><rect x="171" y="120" width="8" height="24" rx="0.5" fill="#22C55E"/>
+                                <line x1="205" y1="140" x2="205" y2="100" stroke="#22C55E" stroke-width="1"/><rect x="201" y="108" width="8" height="25" rx="0.5" fill="#22C55E"/>
+                                <line x1="235" y1="120" x2="235" y2="90" stroke="#EF4444" stroke-width="1"/><rect x="231" y="95" width="8" height="16" rx="0.5" fill="#EF4444"/>
+                                <line x1="265" y1="110" x2="265" y2="75" stroke="#22C55E" stroke-width="1"/><rect x="261" y="80" width="8" height="22" rx="0.5" fill="#22C55E"/>
+                                <line x1="295" y1="100" x2="295" y2="65" stroke="#22C55E" stroke-width="1"/><rect x="291" y="70" width="8" height="20" rx="0.5" fill="#22C55E"/>
+                                <line x1="325" y1="95" x2="325" y2="55" stroke="#EF4444" stroke-width="1"/><rect x="321" y="62" width="8" height="24" rx="0.5" fill="#EF4444"/>
+                                <line x1="355" y1="90" x2="355" y2="50" stroke="#22C55E" stroke-width="1"/><rect x="351" y="55" width="8" height="28" rx="0.5" fill="#22C55E"/>
+                                <line x1="385" y1="85" x2="385" y2="60" stroke="#EF4444" stroke-width="1"/><rect x="381" y="65" width="8" height="12" rx="0.5" fill="#EF4444"/>
+                                <line x1="415" y1="90" x2="415" y2="55" stroke="#22C55E" stroke-width="1"/><rect x="411" y="60" width="8" height="22" rx="0.5" fill="#22C55E"/>
+                                <line x1="445" y1="100" x2="445" y2="70" stroke="#EF4444" stroke-width="1"/><rect x="441" y="75" width="8" height="18" rx="0.5" fill="#EF4444"/>
+                                <line x1="475" y1="110" x2="475" y2="78" stroke="#EF4444" stroke-width="1"/><rect x="471" y="82" width="8" height="20" rx="0.5" fill="#EF4444"/>
+                                <line x1="505" y1="115" x2="505" y2="85" stroke="#22C55E" stroke-width="1"/><rect x="501" y="88" width="8" height="18" rx="0.5" fill="#22C55E"/>
+                                <line x1="535" y1="105" x2="535" y2="75" stroke="#EF4444" stroke-width="1"/><rect x="531" y="80" width="8" height="16" rx="0.5" fill="#EF4444"/>
+                                <line x1="565" y1="110" x2="565" y2="82" stroke="#EF4444" stroke-width="1"/><rect x="561" y="85" width="8" height="18" rx="0.5" fill="#EF4444"/>
+                            </g>
+                            <path class="line-draw" d="M25 188 Q85 165 145 148 T265 95 T355 62 T445 80 T565 92" fill="none" stroke="rgba(41,121,255,0.5)" stroke-width="1.5"/>
+                            <g opacity="0.3">
+                                <rect x="21" y="235" width="8" height="20" fill="#22C55E"/><rect x="51" y="230" width="8" height="25" fill="#22C55E"/>
+                                <rect x="81" y="240" width="8" height="15" fill="#EF4444"/><rect x="111" y="225" width="8" height="30" fill="#22C55E"/>
+                                <rect x="141" y="238" width="8" height="17" fill="#EF4444"/><rect x="171" y="220" width="8" height="35" fill="#22C55E"/>
+                                <rect x="201" y="215" width="8" height="40" fill="#22C55E"/><rect x="231" y="232" width="8" height="23" fill="#EF4444"/>
+                                <rect x="261" y="228" width="8" height="27" fill="#22C55E"/><rect x="291" y="222" width="8" height="33" fill="#22C55E"/>
+                                <rect x="321" y="235" width="8" height="20" fill="#EF4444"/><rect x="351" y="218" width="8" height="37" fill="#22C55E"/>
+                                <rect x="381" y="240" width="8" height="15" fill="#EF4444"/><rect x="411" y="230" width="8" height="25" fill="#22C55E"/>
+                                <rect x="441" y="236" width="8" height="19" fill="#EF4444"/><rect x="471" y="233" width="8" height="22" fill="#EF4444"/>
+                                <rect x="501" y="228" width="8" height="27" fill="#22C55E"/><rect x="531" y="237" width="8" height="18" fill="#EF4444"/>
+                                <rect x="561" y="234" width="8" height="21" fill="#EF4444"/>
+                            </g>
+                        </svg>
+                    </div>
+                </div>
+                <!-- Mock Right Panel -->
+                <div class="mock-right">
+                    <div class="mock-right-title">SIGNAL ANALYSIS</div>
+                    <div style="font-size:20px;font-weight:800;color:#EF4444;margin-bottom:2px">SELL</div>
+                    <div style="font-size:10px;color:#6B7280;margin-bottom:14px">Weak Signal</div>
+                    <div class="mock-right-title" style="margin-top:8px">INDICATORS</div>
+                    <div class="mock-ind"><span class="mock-ind-label">RSI</span><span class="mock-ind-val" style="color:#E8ECF1">41.0</span></div>
+                    <div class="mock-ind"><span class="mock-ind-label">EMA 12</span><span class="mock-ind-val" style="color:#E8ECF1">1,342</span></div>
+                    <div class="mock-ind"><span class="mock-ind-label">EMA 26</span><span class="mock-ind-val" style="color:#E8ECF1">1,358</span></div>
+                    <div class="mock-ind"><span class="mock-ind-label">MACD</span><span class="mock-ind-val" style="color:#EF4444">-5.18</span></div>
+                    <div class="mock-ind"><span class="mock-ind-label">BB Upper</span><span class="mock-ind-val" style="color:#6B7280">1,405</span></div>
+                    <div class="mock-ind"><span class="mock-ind-label">BB Lower</span><span class="mock-ind-val" style="color:#6B7280">1,298</span></div>
+                    <div class="mock-ind"><span class="mock-ind-label">Vol Ratio</span><span class="mock-ind-val" style="color:#E8ECF1">1.15</span></div>
+                    <div class="mock-ind"><span class="mock-ind-label">Momentum</span><span class="mock-ind-val" style="color:#EF4444">-0.02</span></div>
+                    <div class="mock-right-title" style="margin-top:12px">BREAKDOWN</div>
+                    <div class="mock-ind"><span class="mock-ind-label">RSI</span><span class="mock-ind-val" style="color:#22C55E">+1</span></div>
+                    <div class="mock-ind"><span class="mock-ind-label">EMA Cross</span><span class="mock-ind-val" style="color:#EF4444">-1</span></div>
+                    <div class="mock-ind"><span class="mock-ind-label">MACD</span><span class="mock-ind-val" style="color:#EF4444">-2</span></div>
+                    <div class="mock-ind"><span class="mock-ind-label">Bollinger</span><span class="mock-ind-val" style="color:#6B7280">0</span></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- LIVE TICKER -->
+    <div class="live-ticker">
+        <div class="ticker-track">
+            <span class="ticker-item"><span class="ticker-sym">RELIANCE</span><span class="ticker-price">1,330.00</span><span class="ticker-chg" style="color:#EF4444">-1.42%</span></span>
+            <span class="ticker-item"><span class="ticker-sym">TCS</span><span class="ticker-price">3,542.80</span><span class="ticker-chg" style="color:#22C55E">+0.87%</span></span>
+            <span class="ticker-item"><span class="ticker-sym">INFY</span><span class="ticker-price">1,487.25</span><span class="ticker-chg" style="color:#EF4444">-0.53%</span></span>
+            <span class="ticker-item"><span class="ticker-sym">HDFC BANK</span><span class="ticker-price">1,831.50</span><span class="ticker-chg" style="color:#22C55E">+1.12%</span></span>
+            <span class="ticker-item"><span class="ticker-sym">ICICI BANK</span><span class="ticker-price">1,285.60</span><span class="ticker-chg" style="color:#22C55E">+0.68%</span></span>
+            <span class="ticker-item"><span class="ticker-sym">ITC</span><span class="ticker-price">428.35</span><span class="ticker-chg" style="color:#22C55E">+0.32%</span></span>
+            <span class="ticker-item"><span class="ticker-sym">SBIN</span><span class="ticker-price">780.40</span><span class="ticker-chg" style="color:#EF4444">-0.91%</span></span>
+            <span class="ticker-item"><span class="ticker-sym">BHARTIARTL</span><span class="ticker-price">1,692.15</span><span class="ticker-chg" style="color:#22C55E">+2.15%</span></span>
+            <span class="ticker-item"><span class="ticker-sym">BAJFINANCE</span><span class="ticker-price">6,840.50</span><span class="ticker-chg" style="color:#EF4444">-0.74%</span></span>
+            <span class="ticker-item"><span class="ticker-sym">TATAMOTORS</span><span class="ticker-price">985.60</span><span class="ticker-chg" style="color:#22C55E">+1.83%</span></span>
+            <!-- Duplicate for seamless scroll -->
+            <span class="ticker-item"><span class="ticker-sym">RELIANCE</span><span class="ticker-price">1,330.00</span><span class="ticker-chg" style="color:#EF4444">-1.42%</span></span>
+            <span class="ticker-item"><span class="ticker-sym">TCS</span><span class="ticker-price">3,542.80</span><span class="ticker-chg" style="color:#22C55E">+0.87%</span></span>
+            <span class="ticker-item"><span class="ticker-sym">INFY</span><span class="ticker-price">1,487.25</span><span class="ticker-chg" style="color:#EF4444">-0.53%</span></span>
+            <span class="ticker-item"><span class="ticker-sym">HDFC BANK</span><span class="ticker-price">1,831.50</span><span class="ticker-chg" style="color:#22C55E">+1.12%</span></span>
+            <span class="ticker-item"><span class="ticker-sym">ICICI BANK</span><span class="ticker-price">1,285.60</span><span class="ticker-chg" style="color:#22C55E">+0.68%</span></span>
+            <span class="ticker-item"><span class="ticker-sym">ITC</span><span class="ticker-price">428.35</span><span class="ticker-chg" style="color:#22C55E">+0.32%</span></span>
+            <span class="ticker-item"><span class="ticker-sym">SBIN</span><span class="ticker-price">780.40</span><span class="ticker-chg" style="color:#EF4444">-0.91%</span></span>
+            <span class="ticker-item"><span class="ticker-sym">BHARTIARTL</span><span class="ticker-price">1,692.15</span><span class="ticker-chg" style="color:#22C55E">+2.15%</span></span>
+            <span class="ticker-item"><span class="ticker-sym">BAJFINANCE</span><span class="ticker-price">6,840.50</span><span class="ticker-chg" style="color:#EF4444">-0.74%</span></span>
+            <span class="ticker-item"><span class="ticker-sym">TATAMOTORS</span><span class="ticker-price">985.60</span><span class="ticker-chg" style="color:#22C55E">+1.83%</span></span>
+        </div>
+    </div>
+
+    <!-- STATS -->
+    <section class="stats-bar">
+        <div class="stat-item reveal"><div class="stat-num" data-target="20">0</div><div class="stat-label">NSE Stocks</div></div>
+        <div class="stat-item reveal reveal-d1"><div class="stat-num" data-target="6">0</div><div class="stat-label">Indicators</div></div>
+        <div class="stat-item reveal reveal-d2"><div class="stat-num" data-target="5">0</div><div class="stat-label">Timeframes</div></div>
+        <div class="stat-item reveal reveal-d3"><div class="stat-num" data-target="24">0</div><div class="stat-label">Auto Scanning</div></div>
+    </section>
+
+    <!-- FEATURES -->
+    <section class="features-section" id="features">
+        <div class="section-tag reveal">Features</div>
+        <h2 class="section-title reveal reveal-d1">Everything you need to<br>trade smarter</h2>
+        <p class="section-desc reveal reveal-d2">Professional tools that institutional traders use, now available in a single terminal.</p>
+        <div class="features-grid">
+            <div class="feature-card reveal">
+                <div class="feature-icon fi-blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m7 16 4-5 4 3 5-7"/></svg></div>
+                <h3>Live Candlestick Charts</h3>
+                <p>Interactive candlestick charts with real-time OHLCV data across 5 timeframes. Zoom, pan, and analyze price action like a professional trader.</p>
+                <span class="feature-tag">5 Timeframes</span>
+            </div>
+            <div class="feature-card reveal reveal-d1">
+                <div class="feature-icon fi-green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+                <h3>Smart Signal Engine</h3>
+                <p>Multi-indicator scoring system combining RSI, EMA, MACD, Bollinger Bands, and volume to generate BUY/SELL/HOLD signals with confidence ratings.</p>
+                <span class="feature-tag">AI-Powered</span>
+            </div>
+            <div class="feature-card reveal reveal-d2">
+                <div class="feature-icon fi-purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div>
+                <h3>Market Heat Map</h3>
+                <p>Visual heat map showing all stocks at a glance. Instantly spot the strongest buys and deepest sells with color-coded intensity scaling.</p>
+                <span class="feature-tag">Visual Analytics</span>
+            </div>
+            <div class="feature-card reveal reveal-d3">
+                <div class="feature-icon fi-amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+                <h3>Strategy Backtester</h3>
+                <p>Test your trading strategies on 2 years of historical data. Get detailed metrics: win rate, max drawdown, P&L, and equity curves.</p>
+                <span class="feature-tag">2Y Historical</span>
+            </div>
+            <div class="feature-card reveal reveal-d4">
+                <div class="feature-icon fi-red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
+                <h3>Telegram Alerts</h3>
+                <p>Get instant BUY/SELL alerts on Telegram with smart cooldown deduplication. Set custom price threshold alerts per stock.</p>
+                <span class="feature-tag">Real-Time</span>
+            </div>
+            <div class="feature-card reveal reveal-d5">
+                <div class="feature-icon fi-cyan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v3"/></svg></div>
+                <h3>Virtual Portfolio</h3>
+                <p>Paper trade with virtual capital. Track live holdings, calculate real-time P&L, and review your complete trade history.</p>
+                <span class="feature-tag">Paper Trading</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section class="how-section" id="how">
+        <div class="how-inner">
+            <div class="section-tag reveal">How it works</div>
+            <h2 class="section-title reveal reveal-d1">From data to decisions<br>in seconds</h2>
+            <div class="steps">
+                <div class="step reveal">
+                    <div class="step-num">1</div>
+                    <h4>Live Data</h4>
+                    <p>Real-time OHLCV data fetched from Yahoo Finance for 20+ NSE stocks across multiple timeframes.</p>
+                </div>
+                <div class="step reveal reveal-d1">
+                    <div class="step-num">2</div>
+                    <h4>Analyze</h4>
+                    <p>Six technical indicators computed: RSI, EMA, SMA, MACD, Bollinger Bands, and volume metrics.</p>
+                </div>
+                <div class="step reveal reveal-d2">
+                    <div class="step-num">3</div>
+                    <h4>Signal</h4>
+                    <p>Scoring engine combines all indicators to generate BUY, SELL, or HOLD signals with confidence levels.</p>
+                </div>
+                <div class="step reveal reveal-d3">
+                    <div class="step-num">4</div>
+                    <h4>Act</h4>
+                    <p>View signals on the dashboard, get Telegram alerts, backtest strategies, and manage your virtual portfolio.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- TECH STACK -->
+    <section class="tech-section" id="tech">
+        <div class="section-tag reveal" style="justify-content:center">Tech Stack</div>
+        <h2 class="section-title reveal reveal-d1">Built with modern<br>technologies</h2>
+        <div class="tech-grid">
+            <div class="tech-badge reveal"><span class="tech-dot" style="background:#3776AB"></span>Python</div>
+            <div class="tech-badge reveal reveal-d1"><span class="tech-dot" style="background:#009688"></span>FastAPI</div>
+            <div class="tech-badge reveal reveal-d2"><span class="tech-dot" style="background:#F7DF1E"></span>JavaScript</div>
+            <div class="tech-badge reveal reveal-d3"><span class="tech-dot" style="background:#3B82F6"></span>Plotly.js</div>
+            <div class="tech-badge reveal reveal-d4"><span class="tech-dot" style="background:#E34F26"></span>SQLAlchemy</div>
+            <div class="tech-badge reveal reveal-d5"><span class="tech-dot" style="background:#0088CC"></span>Telegram API</div>
+            <div class="tech-badge reveal reveal-d6"><span class="tech-dot" style="background:#22C55E"></span>Yahoo Finance</div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta-section">
+        <h2 class="reveal">Ready to <span class="gradient">trade smarter</span>?</h2>
+        <p class="reveal reveal-d1">Create a free account and start analyzing the Indian stock market in real-time.</p>
+        <a href="/login" class="btn-hero primary reveal reveal-d2">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            Get Started Free
+        </a>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="footer-left">StockMann v1.0 &mdash; Built for Indian Markets</div>
+        <div class="footer-credits">
+            <span style="font-weight:400">built by</span>
+            <span class="name">Manthan Ganvir</span><span class="sep">/</span>
+            <span class="name">Priyanka Nanwatkar</span><span class="sep">/</span>
+            <span class="name">Akash Lingayat</span><span class="sep">/</span>
+            <span class="name">Montu Sharma</span>
+        </div>
+        <div class="footer-links">
+            <a href="#features">Features</a>
+            <a href="#how">How It Works</a>
+        </div>
+    </footer>
+
+    <script>
+        // Clear stale test data from development
+        if (localStorage.getItem('sm_cache_v2') !== '1') {
+            localStorage.removeItem('sm_user');
+            localStorage.setItem('sm_cache_v2', '1');
+        }
+
+        // If already logged in, update buttons to go to terminal
+        const u = localStorage.getItem('sm_user');
+        if (u) {
+            try {
+                const usr = JSON.parse(u);
+                document.getElementById('nav-actions').innerHTML =
+                    '<span style="font-size:12px;color:var(--t3);font-weight:500">Hi, ' + (usr.name || 'Trader') + '</span>' +
+                    '<a href="/terminal" class="btn-glow">Open Terminal</a>';
+                document.getElementById('hero-cta-btn').href = '/terminal';
+                document.getElementById('hero-cta-btn').innerHTML =
+                    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> Open Terminal';
+                const loginBtn = document.getElementById('hero-login-btn');
+                if (loginBtn) loginBtn.style.display = 'none';
+            } catch(e) {}
+        }
+
+        // ── Navbar scroll effect ──
+        window.addEventListener('scroll', () => {
+            document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 60);
+        });
+
+        // ── Scroll Reveal ──
+        const revealObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    // Animated counter for stats
+                    const num = entry.target.querySelector('.stat-num[data-target]');
+                    if (num && !num.dataset.done) {
+                        num.dataset.done = '1';
+                        animateCounter(num, parseInt(num.dataset.target));
+                    }
+                }
+            });
+        }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+
+        document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+
+        // ── Animated Counter ──
+        function animateCounter(el, target) {
+            const suffix = target === 24 ? '/7' : target === 20 ? '+' : '';
+            let current = 0;
+            const step = Math.max(1, Math.floor(target / 30));
+            const timer = setInterval(() => {
+                current = Math.min(current + step, target);
+                el.textContent = current + suffix;
+                if (current >= target) clearInterval(timer);
+            }, 40);
+        }
+
+        // ── Feature Card Mouse Glow ──
+        document.querySelectorAll('.feature-card').forEach(card => {
+            card.addEventListener('mousemove', e => {
+                const rect = card.getBoundingClientRect();
+                card.style.setProperty('--mx', ((e.clientX - rect.left) / rect.width * 100) + '%');
+                card.style.setProperty('--my', ((e.clientY - rect.top) / rect.height * 100) + '%');
+            });
+        });
+
+        // ── Particle Canvas ──
+        (function() {
+            const canvas = document.getElementById('particle-canvas');
+            const ctx = canvas.getContext('2d');
+            let particles = [];
+            let w, h;
+
+            function resize() {
+                w = canvas.width = window.innerWidth;
+                h = canvas.height = window.innerHeight;
+            }
+            resize();
+            window.addEventListener('resize', resize);
+
+            class Particle {
+                constructor() { this.reset(); }
+                reset() {
+                    this.x = Math.random() * w;
+                    this.y = Math.random() * h;
+                    this.size = Math.random() * 1.5 + 0.3;
+                    this.speedX = (Math.random() - 0.5) * 0.3;
+                    this.speedY = (Math.random() - 0.5) * 0.3;
+                    this.opacity = Math.random() * 0.5 + 0.1;
+                    this.pulseSpeed = Math.random() * 0.02 + 0.005;
+                    this.pulseOffset = Math.random() * Math.PI * 2;
+                }
+                update(t) {
+                    this.x += this.speedX;
+                    this.y += this.speedY;
+                    if (this.x < 0 || this.x > w || this.y < 0 || this.y > h) this.reset();
+                    this.currentOpacity = this.opacity * (0.6 + 0.4 * Math.sin(t * this.pulseSpeed + this.pulseOffset));
+                }
+                draw() {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(100,140,255,${this.currentOpacity})`;
+                    ctx.fill();
+                }
+            }
+
+            for (let i = 0; i < 80; i++) particles.push(new Particle());
+
+            let t = 0;
+            function animate() {
+                ctx.clearRect(0, 0, w, h);
+                t++;
+                particles.forEach(p => { p.update(t); p.draw(); });
+
+                // Draw connections
+                for (let i = 0; i < particles.length; i++) {
+                    for (let j = i + 1; j < particles.length; j++) {
+                        const dx = particles[i].x - particles[j].x;
+                        const dy = particles[i].y - particles[j].y;
+                        const dist = Math.sqrt(dx*dx + dy*dy);
+                        if (dist < 120) {
+                            ctx.beginPath();
+                            ctx.moveTo(particles[i].x, particles[i].y);
+                            ctx.lineTo(particles[j].x, particles[j].y);
+                            ctx.strokeStyle = `rgba(80,120,255,${0.06 * (1 - dist/120)})`;
+                            ctx.lineWidth = 0.5;
+                            ctx.stroke();
+                        }
+                    }
+                }
+                requestAnimationFrame(animate);
+            }
+            animate();
+        })();
+
+        // ── Smooth anchor scrolling ──
+        document.querySelectorAll('a[href^="#"]').forEach(a => {
+            a.addEventListener('click', e => {
+                e.preventDefault();
+                const target = document.querySelector(a.getAttribute('href'));
+                if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        });
+    </script>
+</body>
+
+</html>

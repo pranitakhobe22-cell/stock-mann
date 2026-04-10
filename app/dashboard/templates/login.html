@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StockMann -- Sign In</title>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #060810; --bg1: #0D1017; --bg2: #141720; --bg3: #1A1F2E;
+            --t1: #E8ECF1; --t2: #A0A7B8; --t3: #6B7280; --t4: #4B5263;
+            --border: #1E2435;
+            --blue: #3B82F6; --blue-hover: #2563EB; --green: #22C55E; --red: #EF4444;
+            --purple: #8B5CF6; --amber: #F59E0B;
+            --sans: 'IBM Plex Sans', -apple-system, sans-serif;
+            --mono: 'IBM Plex Mono', monospace;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: var(--sans);
+            background: var(--bg);
+            color: var(--t1);
+            min-height: 100vh;
+            display: flex;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ═══ LEFT PANEL — Branding ═══ */
+        .left-panel {
+            flex: 1;
+            background: var(--bg1);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 60px;
+            position: relative;
+            overflow: hidden;
+        }
+        .left-panel::before {
+            content: '';
+            position: absolute;
+            top: -300px; right: -200px;
+            width: 700px; height: 700px;
+            background: radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 60%);
+            pointer-events: none;
+        }
+        .left-panel::after {
+            content: '';
+            position: absolute;
+            bottom: -200px; left: -100px;
+            width: 500px; height: 500px;
+            background: radial-gradient(circle, rgba(139,92,246,0.05) 0%, transparent 60%);
+            pointer-events: none;
+        }
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 48px;
+        }
+        .brand-logo svg { width: 36px; height: 36px; }
+        .brand-logo span {
+            font-size: 16px; font-weight: 700;
+            color: var(--t2); letter-spacing: 3px;
+        }
+        .brand-headline {
+            font-size: 44px;
+            font-weight: 800;
+            line-height: 1.15;
+            letter-spacing: -1.5px;
+            margin-bottom: 20px;
+            max-width: 460px;
+        }
+        .brand-headline .grad {
+            background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 50%, #EC4899 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .brand-desc {
+            font-size: 15px;
+            color: var(--t3);
+            line-height: 1.7;
+            max-width: 400px;
+            margin-bottom: 48px;
+        }
+
+        /* Live Data Ticker on left panel */
+        .brand-stats {
+            display: flex; gap: 32px;
+        }
+        .brand-stat {}
+        .brand-stat-num {
+            font-size: 28px; font-weight: 800;
+            font-family: var(--mono);
+            color: var(--t1);
+        }
+        .brand-stat-label {
+            font-size: 10px; color: var(--t4);
+            font-weight: 700; letter-spacing: 1px;
+            text-transform: uppercase; margin-top: 2px;
+        }
+
+        /* Floating card */
+        .float-card {
+            position: absolute;
+            bottom: 60px;
+            right: 60px;
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 18px 22px;
+            width: 260px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+        }
+        .fc-row {
+            display: flex; justify-content: space-between;
+            align-items: center; padding: 4px 0;
+        }
+        .fc-sym { font-size: 12px; font-weight: 600; color: var(--t1); }
+        .fc-price { font-family: var(--mono); font-size: 11px; color: var(--t2); }
+        .fc-badge {
+            font-size: 9px; font-weight: 700; padding: 2px 7px;
+            border-radius: 2px; font-family: var(--mono);
+        }
+        .fc-buy { background: rgba(34,197,94,0.12); color: var(--green); }
+        .fc-sell { background: rgba(239,68,68,0.12); color: var(--red); }
+        .fc-header {
+            font-size: 9px; font-weight: 700; color: var(--t4);
+            letter-spacing: 1px; text-transform: uppercase;
+            margin-bottom: 10px;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .fc-dot {
+            width: 5px; height: 5px; border-radius: 50%;
+            background: var(--green); animation: blink 2s infinite;
+        }
+        @keyframes blink { 0%,100%{opacity:1}50%{opacity:0.3} }
+        .fc-divider { height: 1px; background: var(--border); margin: 8px 0; }
+
+        /* ═══ RIGHT PANEL — Auth Form ═══ */
+        .right-panel {
+            width: 520px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 48px;
+            position: relative;
+        }
+        .auth-container {
+            width: 100%;
+            max-width: 380px;
+        }
+
+        /* Tabs */
+        .auth-tabs {
+            display: flex;
+            background: var(--bg2);
+            border-radius: 8px;
+            padding: 4px;
+            margin-bottom: 32px;
+            border: 1px solid var(--border);
+        }
+        .auth-tab {
+            flex: 1;
+            background: none;
+            border: none;
+            color: var(--t3);
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .auth-tab.active {
+            background: var(--bg3);
+            color: var(--t1);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        .auth-tab:hover:not(.active) { color: var(--t2); }
+
+        /* Form */
+        .auth-form { display: none; }
+        .auth-form.active { display: block; }
+        .auth-title {
+            font-size: 22px; font-weight: 800;
+            letter-spacing: -0.5px; margin-bottom: 6px;
+        }
+        .auth-subtitle {
+            font-size: 13px; color: var(--t3);
+            margin-bottom: 28px; line-height: 1.5;
+        }
+        .field {
+            margin-bottom: 18px;
+        }
+        .field label {
+            display: block;
+            font-size: 11px; font-weight: 600;
+            color: var(--t3); margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .field input {
+            width: 100%;
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            color: var(--t1);
+            padding: 12px 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: var(--sans);
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .field input:focus {
+            border-color: var(--blue);
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+        }
+        .field input::placeholder { color: var(--t4); }
+
+        .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        .btn-submit {
+            width: 100%;
+            background: var(--blue);
+            color: #fff;
+            border: none;
+            padding: 13px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 6px;
+            transition: background 0.15s, transform 0.1s, box-shadow 0.2s;
+            letter-spacing: 0.3px;
+        }
+        .btn-submit:hover {
+            background: var(--blue-hover);
+            box-shadow: 0 6px 24px rgba(59,130,246,0.25);
+            transform: translateY(-1px);
+        }
+        .btn-submit:active { transform: translateY(0); }
+
+        .auth-error {
+            background: rgba(239,68,68,0.1);
+            border: 1px solid rgba(239,68,68,0.2);
+            color: var(--red);
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .auth-divider {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin: 24px 0;
+            color: var(--t4);
+            font-size: 11px;
+        }
+        .auth-divider::before, .auth-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        .auth-footer {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 12px;
+            color: var(--t4);
+        }
+        .auth-footer a { color: var(--blue); text-decoration: none; font-weight: 600; }
+        .auth-footer a:hover { text-decoration: underline; }
+
+        /* Success animation */
+        .success-overlay {
+            position: fixed; inset: 0;
+            background: rgba(6,8,16,0.9);
+            display: none;
+            align-items: center; justify-content: center;
+            z-index: 1000;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .success-overlay.show { display: flex; }
+        .success-check {
+            width: 64px; height: 64px;
+            border-radius: 50%;
+            background: rgba(34,197,94,0.12);
+            display: flex; align-items: center; justify-content: center;
+            animation: scaleIn 0.3s ease;
+        }
+        @keyframes scaleIn { from { transform: scale(0); } to { transform: scale(1); } }
+        .success-text { font-size: 18px; font-weight: 700; animation: fadeIn 0.4s ease 0.2s both; }
+        .success-sub { font-size: 13px; color: var(--t3); animation: fadeIn 0.4s ease 0.3s both; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        @media (max-width: 960px) {
+            body { flex-direction: column; }
+            .left-panel { display: none; }
+            .right-panel { width: 100%; min-height: 100vh; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- LEFT -->
+<div class="left-panel">
+    <div class="brand-logo">
+        <svg viewBox="0 0 24 24" fill="none">
+            <path d="M3 17L7 12L11 15L21 5" stroke="url(#lg2)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <defs><linearGradient id="lg2" x1="3" y1="5" x2="21" y2="17"><stop stop-color="#8B5CF6"/><stop offset="1" stop-color="#3B82F6"/></linearGradient></defs>
+        </svg>
+        <span>STOCKMANN</span>
+    </div>
+    <h1 class="brand-headline">
+        Your <span class="grad">AI-Powered</span> Stock Market Terminal
+    </h1>
+    <p class="brand-desc">
+        Real-time analysis, smart signals, backtesting, and portfolio management for Indian stock markets. Professional tools, zero cost.
+    </p>
+    <div class="brand-stats">
+        <div class="brand-stat">
+            <div class="brand-stat-num">20+</div>
+            <div class="brand-stat-label">NSE Stocks</div>
+        </div>
+        <div class="brand-stat">
+            <div class="brand-stat-num">6</div>
+            <div class="brand-stat-label">Indicators</div>
+        </div>
+        <div class="brand-stat">
+            <div class="brand-stat-num">100%</div>
+            <div class="brand-stat-label">Free</div>
+        </div>
+    </div>
+
+    <div class="float-card">
+        <div class="fc-header"><span class="fc-dot"></span> Live Signals</div>
+        <div class="fc-row"><span class="fc-sym">RELIANCE</span><span class="fc-price">1,330.00</span><span class="fc-badge fc-sell">SELL</span></div>
+        <div class="fc-divider"></div>
+        <div class="fc-row"><span class="fc-sym">TCS</span><span class="fc-price">3,542.80</span><span class="fc-badge fc-buy">BUY</span></div>
+        <div class="fc-divider"></div>
+        <div class="fc-row"><span class="fc-sym">INFY</span><span class="fc-price">1,487.25</span><span class="fc-badge fc-buy">BUY</span></div>
+        <div class="fc-divider"></div>
+        <div class="fc-row"><span class="fc-sym">HDFC BANK</span><span class="fc-price">1,831.50</span><span class="fc-badge fc-sell">SELL</span></div>
+    </div>
+</div>
+
+<!-- RIGHT -->
+<div class="right-panel">
+    <div class="auth-container">
+        <!-- Tabs -->
+        <div class="auth-tabs">
+            <button class="auth-tab active" onclick="showTab('login')">Sign In</button>
+            <button class="auth-tab" onclick="showTab('signup')">Create Account</button>
+        </div>
+
+        <div class="auth-error" id="auth-error"></div>
+
+        <!-- LOGIN FORM -->
+        <div class="auth-form active" id="form-login">
+            <div class="auth-title">Welcome back</div>
+            <div class="auth-subtitle">Sign in to your StockMann terminal</div>
+            <div class="field">
+                <label>Username</label>
+                <input type="text" id="login-user" placeholder="Enter your username" autocomplete="username">
+            </div>
+            <div class="field">
+                <label>Password</label>
+                <input type="password" id="login-pass" placeholder="Enter your password" autocomplete="current-password">
+            </div>
+            <button class="btn-submit" onclick="doLogin()">Sign In</button>
+            <div class="auth-divider">or</div>
+            <div class="auth-footer">
+                Don't have an account? <a href="#" onclick="showTab('signup'); return false;">Create one</a>
+            </div>
+        </div>
+
+        <!-- SIGNUP FORM -->
+        <div class="auth-form" id="form-signup">
+            <div class="auth-title">Create your account</div>
+            <div class="auth-subtitle">Start analyzing the Indian stock market for free</div>
+            <div class="field">
+                <label>Full Name</label>
+                <input type="text" id="signup-name" placeholder="Your full name">
+            </div>
+            <div class="field">
+                <label>Email</label>
+                <input type="email" id="signup-email" placeholder="you@example.com">
+            </div>
+            <div class="field-row">
+                <div class="field">
+                    <label>Username</label>
+                    <input type="text" id="signup-user" placeholder="Choose a username">
+                </div>
+                <div class="field">
+                    <label>Password</label>
+                    <input type="password" id="signup-pass" placeholder="Min 4 characters">
+                </div>
+            </div>
+            <button class="btn-submit" onclick="doSignup()">Create Account</button>
+            <div class="auth-divider">or</div>
+            <div class="auth-footer">
+                Already have an account? <a href="#" onclick="showTab('login'); return false;">Sign in</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success Overlay -->
+<div class="success-overlay" id="success-overlay">
+    <div class="success-check">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <div class="success-text" id="success-text">Welcome!</div>
+    <div class="success-sub">Redirecting to terminal...</div>
+</div>
+
+<script>
+    // Already logged in? Go straight to terminal
+    if (localStorage.getItem('sm_user')) {
+        window.location.href = '/terminal';
+    }
+
+    function showTab(tab) {
+        document.querySelectorAll('.auth-tab').forEach((t, i) => t.classList.toggle('active', (tab === 'login' ? i === 0 : i === 1)));
+        document.getElementById('form-login').classList.toggle('active', tab === 'login');
+        document.getElementById('form-signup').classList.toggle('active', tab === 'signup');
+        hideError();
+    }
+
+    function showError(msg) {
+        const el = document.getElementById('auth-error');
+        el.textContent = msg;
+        el.style.display = 'block';
+    }
+    function hideError() { document.getElementById('auth-error').style.display = 'none'; }
+
+    function showSuccess(name) {
+        document.getElementById('success-text').textContent = `Welcome, ${name}!`;
+        document.getElementById('success-overlay').classList.add('show');
+        setTimeout(() => window.location.href = '/terminal', 1500);
+    }
+
+    async function doLogin() {
+        hideError();
+        const username = document.getElementById('login-user').value.trim();
+        const password = document.getElementById('login-pass').value;
+        if (!username || !password) { showError('Please fill in all fields'); return; }
+
+        const res = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password }),
+        });
+        const data = await res.json();
+        if (data.error) { showError(data.error); return; }
+
+        localStorage.setItem('sm_user', JSON.stringify(data));
+        showSuccess(data.name);
+    }
+
+    async function doSignup() {
+        hideError();
+        const name = document.getElementById('signup-name').value.trim();
+        const email = document.getElementById('signup-email').value.trim();
+        const username = document.getElementById('signup-user').value.trim();
+        const password = document.getElementById('signup-pass').value;
+
+        if (!name || !username || !password) { showError('Please fill in name, username, and password'); return; }
+        if (password.length < 4) { showError('Password must be at least 4 characters'); return; }
+
+        const res = await fetch('/api/auth/signup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password, name, email }),
+        });
+        const data = await res.json();
+        if (data.error) { showError(data.error); return; }
+
+        localStorage.setItem('sm_user', JSON.stringify(data));
+        showSuccess(data.name);
+    }
+
+    // Enter key to submit
+    document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+    document.getElementById('signup-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doSignup(); });
+</script>
+</body>
+</html>

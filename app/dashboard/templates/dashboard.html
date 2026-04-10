@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StockMann -- Real-Time Market Terminal</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+</head>
+
+<body>
+
+    <!-- ═══ MARKET TICKER BAR ═══ -->
+    <div class="ticker-bar" id="ticker-bar">
+        <div class="ticker-track" id="ticker-track">
+            <!-- Populated by JS -->
+        </div>
+    </div>
+
+    <!-- ═══ TOP NAVBAR ═══ -->
+    <header class="topbar">
+        <div class="topbar-left">
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <path d="M3 17L7 12L11 15L21 5" stroke="url(#lg)" stroke-width="2.5" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                        <defs>
+                            <linearGradient id="lg" x1="3" y1="5" x2="21" y2="17">
+                                <stop stop-color="#6C5CE7" />
+                                <stop offset="1" stop-color="#0984E3" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <span class="logo-text">STOCKMANN</span>
+            </div>
+            <nav class="topbar-nav">
+                <button class="nav-btn active" data-view="chart" onclick="switchView('chart')">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 3v18h18" />
+                        <path d="m7 16 4-5 4 3 5-7" />
+                    </svg>
+                    Terminal
+                </button>
+                <button class="nav-btn" data-view="heatmap" onclick="switchView('heatmap')">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7" rx="1" />
+                        <rect x="14" y="3" width="7" height="7" rx="1" />
+                        <rect x="3" y="14" width="7" height="7" rx="1" />
+                        <rect x="14" y="14" width="7" height="7" rx="1" />
+                    </svg>
+                    Heat Map
+                </button>
+                <button class="nav-btn" data-view="screener" onclick="switchView('screener')">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="m21 21-4.35-4.35" />
+                    </svg>
+                    Screener
+                </button>
+                <button class="nav-btn" data-view="backtest" onclick="switchView('backtest')">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
+                    </svg>
+                    Backtest
+                </button>
+                <button class="nav-btn" data-view="portfolio" onclick="switchView('portfolio')">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="7" width="20" height="14" rx="2" />
+                        <path d="M16 7V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v3" />
+                    </svg>
+                    Portfolio
+                </button>
+                <button class="nav-btn" data-view="profile" onclick="switchView('profile')">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
+                    </svg>
+                    Profile
+                </button>
+            </nav>
+        </div>
+        <div class="topbar-right">
+            <div class="search-wrapper">
+                <div class="search-box" id="search-box">
+                    <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="m21 21-4.35-4.35" />
+                    </svg>
+                    <input type="text" id="symbol-search" placeholder="Search symbol..." autocomplete="off"
+                        spellcheck="false">
+                    <kbd class="search-kbd">Ctrl+K</kbd>
+                </div>
+            </div>
+            <div class="topbar-divider"></div>
+            <!-- Fear & Greed Gauge Mini -->
+            <div class="fg-mini" id="fg-mini" title="Market Sentiment">
+                <div class="fg-mini-bar">
+                    <div class="fg-mini-fill" id="fg-mini-fill"></div>
+                </div>
+                <span class="fg-mini-label" id="fg-mini-label">--</span>
+            </div>
+            <div class="topbar-divider"></div>
+            <div class="market-clock">
+                <span class="clock-label">IST</span>
+                <span class="clock-time" id="clock-time">--:--:--</span>
+            </div>
+            <button class="icon-btn" onclick="toggleFullscreen()" title="Fullscreen (F11)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path
+                        d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- ═══ MAIN LAYOUT ═══ -->
+    <div class="app-layout">
+
+        <!-- LEFT SIDEBAR -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <span class="sidebar-title">WATCHLIST <span id="wl-count" style="color:var(--t4);font-size:9px"></span></span>
+                <div class="sidebar-actions">
+                    <button class="icon-btn-sm" onclick="addCurrentToWatchlist()" title="Add current stock">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    </button>
+                    <button class="icon-btn-sm" onclick="loadWatchlistPrices()" title="Refresh">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5">
+                            <path d="M21 2v6h-6" />
+                            <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+                            <path d="M3 22v-6h6" />
+                            <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="watchlist-items" id="watchlist-items"></div>
+        </aside>
+
+        <!-- CENTER CONTENT -->
+        <main class="main-content">
+
+            <!-- ═══ CHART VIEW (TERMINAL) ═══ -->
+            <div class="view-panel active" id="view-chart">
+                <div class="symbol-bar">
+                    <div class="symbol-info">
+                        <div class="symbol-name-group">
+                            <h2 class="symbol-name" id="sym-name">RELIANCE</h2>
+                            <span class="symbol-badge" id="sym-exchange">NSE</span>
+                        </div>
+                        <div class="price-group">
+                            <span class="current-price" id="sym-price">--</span>
+                            <span class="price-change" id="sym-change">--</span>
+                        </div>
+                    </div>
+                    <div class="symbol-bar-center">
+                        <div class="timeframe-bar">
+                            <button class="tf-btn" data-tf="1m">1m</button>
+                            <button class="tf-btn" data-tf="5m">5m</button>
+                            <button class="tf-btn" data-tf="15m">15m</button>
+                            <button class="tf-btn" data-tf="1h">1H</button>
+                            <button class="tf-btn active" data-tf="1d">1D</button>
+                        </div>
+                        <div class="chart-tools">
+                            <button class="tool-btn" onclick="toggleCompare()" title="Compare stocks">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M18 20V10" />
+                                    <path d="M12 20V4" />
+                                    <path d="M6 20v-6" />
+                                </svg>
+                                Compare
+                            </button>
+                            <button class="tool-btn" onclick="exportCSV()" title="Export data to CSV">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                    <polyline points="7 10 12 15 17 10" />
+                                    <line x1="12" y1="15" x2="12" y2="3" />
+                                </svg>
+                                Export
+                            </button>
+                        </div>
+                    </div>
+                    <div class="signal-chip" id="signal-chip">
+                        <span class="signal-dot"></span>
+                        <span class="signal-label">--</span>
+                    </div>
+                </div>
+
+                <!-- Compare Bar (hidden by default) -->
+                <div class="compare-bar" id="compare-bar" style="display:none">
+                    <span class="compare-label">Compare with:</span>
+                    <input type="text" id="compare-input" class="ctrl-input" placeholder="e.g. TCS.NS"
+                        style="width:160px">
+                    <button class="btn-primary-sm" onclick="runCompare()">Overlay</button>
+                    <button class="btn-ghost-sm" onclick="clearCompare()">Clear</button>
+                </div>
+
+                <!-- Main Chart -->
+                <div class="chart-wrapper">
+                    <div id="main-chart" class="chart-area"></div>
+                </div>
+
+                <!-- Sub Charts -->
+                <div class="subchart-row">
+                    <div class="subchart-panel">
+                        <div class="subchart-label">VOLUME</div>
+                        <div id="volume-chart" class="subchart-area"></div>
+                    </div>
+                    <div class="subchart-panel">
+                        <div class="subchart-label">RSI (14)</div>
+                        <div id="rsi-chart" class="subchart-area"></div>
+                    </div>
+                    <div class="subchart-panel">
+                        <div class="subchart-label">MACD (12, 26, 9)</div>
+                        <div id="macd-chart" class="subchart-area"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ HEAT MAP VIEW ═══ -->
+            <div class="view-panel" id="view-heatmap">
+                <div class="panel-header">
+                    <h2>Market Heat Map</h2>
+                    <div class="panel-actions">
+                        <select id="heatmap-metric" class="ctrl-select" onchange="renderHeatMap()">
+                            <option value="score">Signal Score</option>
+                            <option value="momentum">Momentum</option>
+                            <option value="rsi">RSI</option>
+                        </select>
+                        <button class="btn-primary" onclick="runScanner(); setTimeout(renderHeatMap, 2000)">
+                            Refresh Data
+                        </button>
+                    </div>
+                </div>
+                <div class="heatmap-container" id="heatmap-grid">
+                    <div class="loading-state">
+                        <div class="loader"></div>Run screener first to load heat map data
+                    </div>
+                </div>
+                <!-- Fear & Greed Full -->
+                <div class="fg-full" id="fg-full">
+                    <div class="fg-header">Market Sentiment Gauge</div>
+                    <div class="fg-gauge-wrap">
+                        <div class="fg-gauge" id="fg-gauge">
+                            <svg viewBox="0 0 200 110">
+                                <path d="M20 100 A80 80 0 0 1 180 100" fill="none" stroke="#1B1E2B" stroke-width="14"
+                                    stroke-linecap="round" />
+                                <path d="M20 100 A80 80 0 0 1 180 100" fill="none" stroke="url(#gauge-grad)"
+                                    stroke-width="14" stroke-linecap="round" id="fg-arc" />
+                                <defs>
+                                    <linearGradient id="gauge-grad" x1="0" y1="0" x2="1" y2="0">
+                                        <stop offset="0%" stop-color="#EF5350" />
+                                        <stop offset="25%" stop-color="#FF9800" />
+                                        <stop offset="50%" stop-color="#FDD835" />
+                                        <stop offset="75%" stop-color="#66BB6A" />
+                                        <stop offset="100%" stop-color="#26A69A" />
+                                    </linearGradient>
+                                </defs>
+                                <line id="fg-needle" x1="100" y1="100" x2="100" y2="30" stroke="#D1D4DC"
+                                    stroke-width="2.5" stroke-linecap="round" transform="rotate(-90, 100, 100)" />
+                                <circle cx="100" cy="100" r="5" fill="#D1D4DC" />
+                            </svg>
+                        </div>
+                        <div class="fg-labels">
+                            <span class="fg-l" style="color:#EF5350">Extreme Fear</span>
+                            <span class="fg-l" style="color:#FF9800">Fear</span>
+                            <span class="fg-l" style="color:#FDD835">Neutral</span>
+                            <span class="fg-l" style="color:#66BB6A">Greed</span>
+                            <span class="fg-l" style="color:#26A69A">Extreme Greed</span>
+                        </div>
+                        <div class="fg-value" id="fg-value-text">--</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ SCREENER VIEW ═══ -->
+            <div class="view-panel" id="view-screener">
+                <div class="panel-header">
+                    <h2>Market Screener</h2>
+                    <div class="panel-actions">
+                        <select id="scanner-tf" class="ctrl-select">
+                            <option value="1d">Daily</option>
+                            <option value="1h">Hourly</option>
+                            <option value="5m">5 Min</option>
+                        </select>
+                        <button class="btn-primary" onclick="runScanner()">Scan Now</button>
+                        <button class="btn-ghost" onclick="exportScannerCSV()" title="Export results">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                <polyline points="7 10 12 15 17 10" />
+                                <line x1="12" y1="15" x2="12" y2="3" />
+                            </svg>
+                            CSV
+                        </button>
+                    </div>
+                </div>
+                <div class="scanner-summary" id="scanner-summary">
+                    <div class="sum-card">
+                        <div class="sum-num" id="sc-total">--</div>
+                        <div class="sum-label">Scanned</div>
+                    </div>
+                    <div class="sum-card sc-buy">
+                        <div class="sum-num" id="sc-buys">--</div>
+                        <div class="sum-label">Buy</div>
+                    </div>
+                    <div class="sum-card sc-sell">
+                        <div class="sum-num" id="sc-sells">--</div>
+                        <div class="sum-label">Sell</div>
+                    </div>
+                    <div class="sum-card sc-hold">
+                        <div class="sum-num" id="sc-holds">--</div>
+                        <div class="sum-label">Hold</div>
+                    </div>
+                    <div class="sum-card sc-special">
+                        <div class="sum-num" id="sc-oversold">--</div>
+                        <div class="sum-label">Oversold</div>
+                    </div>
+                    <div class="sum-card sc-special">
+                        <div class="sum-num" id="sc-overbought">--</div>
+                        <div class="sum-label">Overbought</div>
+                    </div>
+                </div>
+                <div class="scanner-tabs">
+                    <button class="stab active" data-stab="all" onclick="filterScanner('all')">All</button>
+                    <button class="stab" data-stab="buys" onclick="filterScanner('buys')">Buys</button>
+                    <button class="stab" data-stab="sells" onclick="filterScanner('sells')">Sells</button>
+                    <button class="stab" data-stab="gainers" onclick="filterScanner('gainers')">Gainers</button>
+                    <button class="stab" data-stab="losers" onclick="filterScanner('losers')">Losers</button>
+                    <button class="stab" data-stab="volume" onclick="filterScanner('volume')">Volume</button>
+                </div>
+                <div class="table-container">
+                    <table class="data-table" id="scanner-table">
+                        <thead>
+                            <tr>
+                                <th>Symbol</th>
+                                <th>Price</th>
+                                <th>Signal</th>
+                                <th>Strength</th>
+                                <th>Score</th>
+                                <th>RSI</th>
+                                <th>MACD</th>
+                                <th>Momentum</th>
+                                <th>Vol Ratio</th>
+                            </tr>
+                        </thead>
+                        <tbody id="scanner-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ═══ BACKTEST VIEW ═══ -->
+            <div class="view-panel" id="view-backtest">
+                <div class="panel-header">
+                    <h2>Strategy Backtester</h2>
+                    <div class="panel-actions bt-controls">
+                        <div class="bt-field"><label>Symbol</label><input type="text" id="bt-symbol" class="ctrl-input"
+                                value="RELIANCE.NS"></div>
+                        <div class="bt-field"><label>Capital</label><input type="number" id="bt-capital"
+                                class="ctrl-input" value="1000000"></div>
+                        <div class="bt-field"><label>Buy @</label><input type="number" id="bt-buy-thresh"
+                                class="ctrl-input" value="3" step="0.5"></div>
+                        <div class="bt-field"><label>Sell @</label><input type="number" id="bt-sell-thresh"
+                                class="ctrl-input" value="-3" step="0.5"></div>
+                        <button class="btn-primary" onclick="runBacktest()">Run Backtest</button>
+                    </div>
+                </div>
+                <div id="bt-results" class="bt-results-area">
+                    <div class="empty-state">
+                        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#2A2E39" stroke-width="1.2">
+                            <circle cx="12" cy="12" r="10" />
+                            <polyline points="12 6 12 12 16 14" />
+                        </svg>
+                        <h3>Backtest Engine</h3>
+                        <p>Configure your strategy parameters and run a backtest to simulate trading on historical data
+                            with real signals.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ PORTFOLIO VIEW ═══ -->
+            <div class="view-panel" id="view-portfolio">
+                <div class="panel-header">
+                    <h2>Portfolio Manager</h2>
+                    <div class="panel-actions">
+                        <button class="btn-buy" onclick="openTradeModal('BUY')">Buy</button>
+                        <button class="btn-sell" onclick="openTradeModal('SELL')">Sell</button>
+                        <button class="btn-ghost" onclick="loadPortfolio()">Refresh</button>
+                    </div>
+                </div>
+                <div class="portfolio-cards" id="pf-cards">
+                    <div class="pf-card">
+                        <div class="pf-card-label">Total Invested</div>
+                        <div class="pf-card-value" id="pf-invested">--</div>
+                    </div>
+                    <div class="pf-card">
+                        <div class="pf-card-label">Current Value</div>
+                        <div class="pf-card-value" id="pf-current">--</div>
+                    </div>
+                    <div class="pf-card">
+                        <div class="pf-card-label">Total P&amp;L</div>
+                        <div class="pf-card-value" id="pf-pnl">--</div>
+                    </div>
+                    <div class="pf-card">
+                        <div class="pf-card-label">Return</div>
+                        <div class="pf-card-value" id="pf-return">--</div>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Symbol</th>
+                                <th>Qty</th>
+                                <th>Avg Price</th>
+                                <th>CMP</th>
+                                <th>Invested</th>
+                                <th>Current</th>
+                                <th>P&amp;L</th>
+                                <th>Return</th>
+                            </tr>
+                        </thead>
+                        <tbody id="portfolio-tbody"></tbody>
+                    </table>
+                </div>
+                <div class="section-bar"><span>Trade History</span></div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Symbol</th>
+                                <th>Type</th>
+                                <th>Qty</th>
+                                <th>Price</th>
+                                <th>P&amp;L</th>
+                            </tr>
+                        </thead>
+                        <tbody id="trades-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ═══ PROFILE VIEW ═══ -->
+            <div class="view-panel" id="view-profile">
+                <div class="profile-page">
+                    <!-- Profile Header Card -->
+                    <div class="profile-header-card">
+                        <div class="profile-avatar" id="prof-avatar" style="background:#3B82F6">
+                            <span id="prof-initials">T</span>
+                            <div class="profile-avatar-badge"></div>
+                        </div>
+                        <div class="profile-header-info">
+                            <div class="profile-display-name" id="prof-name">Trader</div>
+                            <div class="profile-display-email" id="prof-email">Set your email in settings below</div>
+                            <div class="profile-tags-row">
+                                <span class="profile-tag ptag-blue" id="prof-tag-exp">Beginner</span>
+                                <span class="profile-tag ptag-green" id="prof-tag-risk">Moderate Risk</span>
+                            </div>
+                        </div>
+                        <button class="profile-logout-btn" onclick="logoutUser()">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                            Logout
+                        </button>
+                    </div>
+
+                    <!-- Stats Row -->
+                    <div class="profile-stats-row">
+                        <div class="profile-stat-card"><div class="profile-stat-num" style="color:#3B82F6" id="ps-trades">0</div><div class="profile-stat-label">Total Trades</div></div>
+                        <div class="profile-stat-card"><div class="profile-stat-num" style="color:#22C55E" id="ps-buys">0</div><div class="profile-stat-label">Buy Orders</div></div>
+                        <div class="profile-stat-card"><div class="profile-stat-num" style="color:#EF4444" id="ps-sells">0</div><div class="profile-stat-label">Sell Orders</div></div>
+                        <div class="profile-stat-card"><div class="profile-stat-num" style="color:#8B5CF6" id="ps-signals">0</div><div class="profile-stat-label">Signals</div></div>
+                        <div class="profile-stat-card"><div class="profile-stat-num" style="color:#F59E0B" id="ps-alerts">0</div><div class="profile-stat-label">Alerts</div></div>
+                    </div>
+
+                    <!-- Two Column -->
+                    <div class="profile-two-col">
+                        <!-- Settings -->
+                        <div class="profile-card">
+                            <div class="profile-card-header"><span>PROFILE SETTINGS</span></div>
+                            <div class="profile-card-body">
+                                <div class="profile-form-row">
+                                    <div class="profile-field"><label>Full Name</label><input type="text" id="pf-name" placeholder="Your name"></div>
+                                    <div class="profile-field"><label>Email</label><input type="email" id="pf-email" placeholder="email@example.com"></div>
+                                </div>
+                                <div class="profile-form-row">
+                                    <div class="profile-field"><label>Phone</label><input type="text" id="pf-phone" placeholder="+91 XXXXX XXXXX"></div>
+                                    <div class="profile-field"><label>Experience</label>
+                                        <select id="pf-experience"><option value="Beginner">Beginner</option><option value="Intermediate">Intermediate</option><option value="Advanced">Advanced</option><option value="Professional">Professional</option></select>
+                                    </div>
+                                </div>
+                                <div class="profile-form-row">
+                                    <div class="profile-field"><label>Risk Appetite</label>
+                                        <select id="pf-risk"><option value="Conservative">Conservative</option><option value="Moderate">Moderate</option><option value="Aggressive">Aggressive</option></select>
+                                    </div>
+                                    <div class="profile-field"><label>Default Capital (INR)</label><input type="number" id="pf-capital" placeholder="1000000"></div>
+                                </div>
+                                <div class="profile-form-row profile-form-full">
+                                    <div class="profile-field"><label>Bio / Notes</label><textarea id="pf-bio" placeholder="A short note about your trading style..." rows="3"></textarea></div>
+                                </div>
+                                <div class="profile-form-row profile-form-full">
+                                    <div class="profile-field"><label>Preferred Sectors</label><input type="text" id="pf-sectors" placeholder="IT, Banking, Pharma, Auto..."></div>
+                                </div>
+                                <!-- Avatar Color -->
+                                <div class="profile-field" style="margin-bottom:16px">
+                                    <label>Avatar Color</label>
+                                    <div class="profile-color-options" id="profile-color-options">
+                                        <div class="profile-color-opt active" style="background:#3B82F6" data-color="#3B82F6" onclick="pickProfileColor(this)"></div>
+                                        <div class="profile-color-opt" style="background:#8B5CF6" data-color="#8B5CF6" onclick="pickProfileColor(this)"></div>
+                                        <div class="profile-color-opt" style="background:#22C55E" data-color="#22C55E" onclick="pickProfileColor(this)"></div>
+                                        <div class="profile-color-opt" style="background:#EF4444" data-color="#EF4444" onclick="pickProfileColor(this)"></div>
+                                        <div class="profile-color-opt" style="background:#F59E0B" data-color="#F59E0B" onclick="pickProfileColor(this)"></div>
+                                        <div class="profile-color-opt" style="background:#EC4899" data-color="#EC4899" onclick="pickProfileColor(this)"></div>
+                                        <div class="profile-color-opt" style="background:#14B8A6" data-color="#14B8A6" onclick="pickProfileColor(this)"></div>
+                                        <div class="profile-color-opt" style="background:#6366F1" data-color="#6366F1" onclick="pickProfileColor(this)"></div>
+                                    </div>
+                                </div>
+                                <div style="display:flex;align-items:center;gap:12px">
+                                    <button class="btn-primary" onclick="saveUserProfile()">Save Changes</button>
+                                    <span class="profile-save-status" id="profile-save-status">Saved!</span>
+                                </div>
+                            </div>
+                            <div class="profile-member-since" id="profile-member-since">Member since --</div>
+                        </div>
+
+                        <!-- Right: Telegram + Activity -->
+                        <div style="display:flex;flex-direction:column;gap:16px">
+                            <div class="profile-card">
+                                <div class="profile-card-header"><span>TELEGRAM ALERTS</span></div>
+                                <div class="profile-card-body">
+                                    <div class="profile-form-row">
+                                        <div class="profile-field"><label>Bot Token</label><input type="text" id="pf-tg-token" placeholder="123456:ABC-DEF..."></div>
+                                        <div class="profile-field"><label>Chat ID</label><input type="text" id="pf-tg-chat" placeholder="Your chat ID"></div>
+                                    </div>
+                                    <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
+                                        <button class="btn-primary" onclick="testTelegram()" style="font-size:11px;padding:7px 16px">Test Telegram</button>
+                                        <span id="tg-test-status" style="font-size:11px;color:#4B5263"></span>
+                                    </div>
+                                    <div style="font-size:10px;color:#4B5263;line-height:1.7;margin-top:10px;background:rgba(30,34,48,0.5);padding:10px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.04)">
+                                        <strong style="color:#6B7280">Setup Guide:</strong><br>
+                                        1. Open Telegram, search <strong style="color:#A0A7B8">@BotFather</strong><br>
+                                        2. Send <code style="color:#3B82F6">/newbot</code> and follow prompts to create your bot<br>
+                                        3. Copy the <strong style="color:#A0A7B8">Bot Token</strong> and paste above<br>
+                                        4. Open your bot in Telegram and send <code style="color:#3B82F6">/start</code><br>
+                                        5. Search <strong style="color:#A0A7B8">@userinfobot</strong>, send any message to get your <strong style="color:#A0A7B8">Chat ID</strong><br>
+                                        6. Paste Chat ID above, click <strong style="color:#22C55E">Save Changes</strong>, then <strong style="color:#22C55E">Test Telegram</strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="profile-card" style="flex:1">
+                                <div class="profile-card-header"><span>RECENT SIGNALS</span></div>
+                                <div class="profile-card-body">
+                                    <div class="profile-activity-list" id="profile-activity-list">
+                                        <div style="text-align:center;color:#4B5263;padding:20px;font-size:12px">Loading activity...</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- RIGHT PANEL -->
+        <aside class="right-panel" id="right-panel">
+            <div class="rp-section">
+                <div class="rp-title">SIGNAL ANALYSIS</div>
+                <div class="signal-hero">
+                    <div>
+                        <div class="sh-signal" id="sh-signal">--</div>
+                        <div class="sh-strength" id="sh-strength">--</div>
+                    </div>
+                    <div class="score-gauge">
+                        <svg viewBox="0 0 80 80" class="score-ring">
+                            <circle class="ring-bg" cx="40" cy="40" r="34" />
+                            <circle class="ring-fill" id="ring-fill" cx="40" cy="40" r="34" />
+                        </svg>
+                        <span class="ring-value" id="ring-value">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="rp-section">
+                <div class="rp-title">INDICATORS</div>
+                <div class="indicator-list" id="indicator-list"></div>
+            </div>
+
+            <div class="rp-section">
+                <div class="rp-title">SIGNAL BREAKDOWN</div>
+                <div class="signal-breakdown" id="signal-breakdown"></div>
+            </div>
+
+            <!-- Price Alert Setup -->
+            <div class="rp-section">
+                <div class="rp-title">PRICE ALERTS</div>
+                <div class="alert-setup">
+                    <div class="alert-row">
+                        <input type="number" id="alert-price" class="ctrl-input" placeholder="Alert price">
+                        <select id="alert-dir" class="ctrl-select">
+                            <option value="above">Above</option>
+                            <option value="below">Below</option>
+                        </select>
+                    </div>
+                    <button class="btn-primary-sm btn-full" onclick="addPriceAlert()">Set Alert</button>
+                    <div class="alert-list" id="alert-list"></div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- ═══ TRADE MODAL ═══ -->
+    <div class="modal-overlay" id="trade-modal" style="display:none">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 id="modal-title">Buy Stock</h3>
+                <button class="modal-close" onclick="closeTradeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group"><label>Symbol</label><input type="text" id="trade-symbol" class="ctrl-input"
+                        placeholder="e.g. RELIANCE.NS"></div>
+                <div class="form-group"><label>Quantity</label><input type="number" id="trade-qty" class="ctrl-input"
+                        placeholder="Shares" min="1"></div>
+                <div class="form-group"><label>Price (blank = market)</label><input type="number" id="trade-price"
+                        class="ctrl-input" placeholder="Market price" step="0.05"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-ghost" onclick="closeTradeModal()">Cancel</button>
+                <button class="btn-primary" id="modal-submit" onclick="executeTrade()">Place Order</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Keyboard Shortcuts Modal -->
+    <div class="modal-overlay" id="kb-modal" style="display:none">
+        <div class="modal-box" style="width:380px">
+            <div class="modal-header">
+                <h3>Keyboard Shortcuts</h3><button class="modal-close"
+                    onclick="document.getElementById('kb-modal').style.display='none'">&times;</button>
+            </div>
+            <div class="modal-body kb-list">
+                <div class="kb-row"><kbd>Ctrl + K</kbd><span>Search symbol</span></div>
+                <div class="kb-row"><kbd>1 - 5</kbd><span>Switch timeframe</span></div>
+                <div class="kb-row"><kbd>F</kbd><span>Fullscreen</span></div>
+                <div class="kb-row"><kbd>S</kbd><span>Screener</span></div>
+                <div class="kb-row"><kbd>B</kbd><span>Backtest</span></div>
+                <div class="kb-row"><kbd>P</kbd><span>Portfolio</span></div>
+                <div class="kb-row"><kbd>H</kbd><span>Heat Map</span></div>
+                <div class="kb-row"><kbd>Esc</kbd><span>Close modal</span></div>
+                <div class="kb-row"><kbd>?</kbd><span>Show shortcuts</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,868 @@
+================================================================================
+                    STOCKMANN - DETAILED PROJECT EXPLANATION
+         Real-Time Indian Stock Market Intelligence Platform
+                       Complete Documentation
+================================================================================
+
+
+TABLE OF CONTENTS
+-----------------
+1.  Project Overview
+2.  Architecture & Tech Stack
+3.  Database Models (5 Tables)
+4.  Signal Engine - How It Works
+5.  Technical Indicators Explained
+6.  Market Scanner
+7.  Backtesting Engine
+8.  Portfolio Manager
+9.  Telegram Alert System
+10. API Endpoints Reference
+11. Frontend Architecture
+12. Dashboard Views (6 Views)
+13. Authentication Flow
+14. Scheduler & Auto-Refresh
+15. Configuration & Settings
+16. How To Run
+
+
+================================================================================
+1. PROJECT OVERVIEW
+================================================================================
+
+StockMann is a Real-Time Indian Stock Market Intelligence Platform that
+provides professional-grade technical analysis, AI-powered trading signals,
+backtesting, and virtual portfolio management for NSE (National Stock
+Exchange) listed stocks.
+
+KEY CAPABILITIES:
+    - Live candlestick charting with 5 timeframes (1m, 5m, 15m, 1h, 1d)
+    - AI-powered signal engine scoring 6 technical indicators
+    - BUY / SELL / HOLD signals with strength ratings
+    - Market scanner scanning 20+ NSE stocks in parallel
+    - Visual heat map with Fear & Greed gauge
+    - Strategy backtester on 2 years of historical data
+    - Virtual portfolio with paper trading (10 Lakh INR capital)
+    - Telegram alerts with smart cooldown deduplication
+    - Stock comparison (normalized % overlay)
+    - CSV data export
+    - User profiles with customizable settings
+    - Keyboard shortcuts for power users
+
+TARGET MARKET:
+    - Indian stock market (NSE)
+    - 20 blue-chip stocks in default watchlist
+    - Currency: INR (Indian Rupees)
+
+
+================================================================================
+2. ARCHITECTURE & TECH STACK
+================================================================================
+
+BACKEND:
+    Language       : Python 3.10+
+    Framework      : FastAPI (async, high-performance)
+    Server         : Uvicorn (ASGI)
+    Database       : SQLite via SQLAlchemy ORM
+    Data Source    : Yahoo Finance (yfinance library)
+    Indicators     : ta (Technical Analysis library)
+    Scheduling     : APScheduler
+    Alerts         : python-telegram-bot
+    HTTP Client    : httpx (async)
+    Validation     : Pydantic
+    Templates      : Jinja2
+    Environment    : python-dotenv
+
+FRONTEND:
+    Languages      : HTML5, CSS3, Vanilla JavaScript
+    Charts         : Plotly.js (interactive candlestick charts)
+    Fonts          : Inter (UI) + JetBrains Mono (data/numbers)
+    Design         : Glassmorphic dark theme
+    Maps           : None (stock market focused)
+
+PROJECT STRUCTURE:
+    stock_mann/
+    |-- main.py                    # FastAPI entry point
+    |-- config/
+    |   |-- settings.py            # Central configuration
+    |-- app/
+    |   |-- api/
+    |   |   |-- routes.py          # All API endpoints (348 lines)
+    |   |-- data/
+    |   |   |-- database.py        # SQLAlchemy models & DB init
+    |   |   |-- fetcher.py         # Yahoo Finance data fetcher
+    |   |-- indicators/
+    |   |   |-- technical.py       # Technical indicator calculations
+    |   |-- signals/
+    |   |   |-- engine.py          # Signal generation engine
+    |   |-- scanner/
+    |   |   |-- market_scanner.py  # Parallel market scanner
+    |   |-- backtest/
+    |   |   |-- backtester.py      # Strategy backtesting engine
+    |   |-- portfolio/
+    |   |   |-- manager.py         # Portfolio management
+    |   |-- alerts/
+    |   |   |-- telegram_alert.py  # Telegram notification system
+    |   |-- scheduler.py           # Background job scheduler
+    |   |-- dashboard/
+    |       |-- templates/         # HTML templates
+    |       |   |-- landing.html   # Marketing landing page (VFX)
+    |       |   |-- login.html     # Authentication page
+    |       |   |-- dashboard.html # Main terminal (all views)
+    |       |-- static/
+    |           |-- css/style.css  # Terminal stylesheet
+    |           |-- js/app.js      # Frontend logic
+
+
+================================================================================
+3. DATABASE MODELS (5 TABLES)
+================================================================================
+
+The database uses SQLite with SQLAlchemy ORM. All models are defined in
+app/data/database.py.
+
+
+MODEL 1: UserProfile
+---------------------
+Purpose: Stores user accounts and preferences.
+
+    +---------------------+---------+------------------------------------------+
+    | Column              | Type    | Description                              |
+    +---------------------+---------+------------------------------------------+
+    | id                  | Integer | Primary Key (auto-increment)             |
+    | username            | String  | Unique login username                    |
+    | password            | String  | User password                            |
+    | name                | String  | Full display name                        |
+    | email               | String  | Email address                            |
+    | phone               | String  | Phone number                             |
+    | avatar_color        | String  | Hex color for avatar (e.g., #3B82F6)     |
+    | bio                 | String  | User bio / trading notes                 |
+    | experience          | String  | Beginner/Intermediate/Advanced/Pro       |
+    | risk_appetite       | String  | Conservative/Moderate/Aggressive         |
+    | preferred_sectors   | String  | Comma-separated sectors                  |
+    | telegram_token      | String  | Telegram bot token for alerts            |
+    | telegram_chat_id    | String  | Telegram chat ID for alerts              |
+    | default_capital     | Float   | Default capital for backtesting          |
+    | watchlist_custom    | String  | Custom watchlist symbols                 |
+    | theme               | String  | UI theme preference                      |
+    | created_at          | DateTime| Account creation timestamp               |
+    | updated_at          | DateTime| Last profile update timestamp            |
+    +---------------------+---------+------------------------------------------+
+
+
+MODEL 2: Signal
+----------------
+Purpose: Stores generated trading signals for historical reference.
+
+    +---------------------+---------+------------------------------------------+
+    | Column              | Type    | Description                              |
+    +---------------------+---------+------------------------------------------+
+    | id                  | Integer | Primary Key (auto-increment)             |
+    | symbol              | String  | Stock symbol (e.g., RELIANCE.NS)         |
+    | timeframe           | String  | Timeframe (1m/5m/15m/1h/1d)             |
+    | signal_type         | String  | BUY / SELL / HOLD                        |
+    | strength            | String  | Strong / Weak                            |
+    | score               | Float   | Signal score (-10 to +10)                |
+    | indicators          | String  | JSON string of all indicator values       |
+    | timestamp           | DateTime| When signal was generated                |
+    +---------------------+---------+------------------------------------------+
+
+
+MODEL 3: Trade
+---------------
+Purpose: Records all buy/sell transactions (real and backtest).
+
+    +---------------------+---------+------------------------------------------+
+    | Column              | Type    | Description                              |
+    +---------------------+---------+------------------------------------------+
+    | id                  | Integer | Primary Key (auto-increment)             |
+    | symbol              | String  | Stock symbol (e.g., TCS.NS)              |
+    | trade_type          | String  | BUY or SELL                              |
+    | quantity            | Integer | Number of shares                         |
+    | price               | Float   | Execution price per share                |
+    | pnl                 | Float   | Profit/Loss for SELL trades              |
+    | is_backtest         | Boolean | True if from backtester, False if real    |
+    | timestamp           | DateTime| When trade was executed                  |
+    +---------------------+---------+------------------------------------------+
+
+
+MODEL 4: Portfolio
+-------------------
+Purpose: Tracks current holdings in the virtual portfolio.
+
+    +---------------------+---------+------------------------------------------+
+    | Column              | Type    | Description                              |
+    +---------------------+---------+------------------------------------------+
+    | id                  | Integer | Primary Key (auto-increment)             |
+    | symbol              | String  | Stock symbol                             |
+    | quantity            | Integer | Number of shares held                    |
+    | avg_price           | Float   | Average cost per share                   |
+    | current_price       | Float   | Latest market price                      |
+    | invested            | Float   | Total amount invested                    |
+    | current_value       | Float   | Current market value                     |
+    | pnl                 | Float   | Unrealized Profit/Loss                   |
+    | pnl_pct             | Float   | P&L as percentage                        |
+    | updated_at          | DateTime| Last price update timestamp              |
+    +---------------------+---------+------------------------------------------+
+
+
+MODEL 5: AlertLog
+------------------
+Purpose: Records all Telegram alerts sent to prevent duplicates.
+
+    +---------------------+---------+------------------------------------------+
+    | Column              | Type    | Description                              |
+    +---------------------+---------+------------------------------------------+
+    | id                  | Integer | Primary Key (auto-increment)             |
+    | symbol              | String  | Stock symbol                             |
+    | alert_type          | String  | Type of alert sent                       |
+    | message             | String  | Full alert message text                  |
+    | timestamp           | DateTime| When alert was sent                      |
+    +---------------------+---------+------------------------------------------+
+
+
+RELATIONSHIP DIAGRAM:
+
+    +------------------+
+    |   UserProfile    |  (Standalone - user accounts)
+    +------------------+
+
+    +------------------+       +------------------+
+    |     Signal       |       |    AlertLog      |
+    +------------------+       +------------------+
+    | symbol           |       | symbol           |
+    | signal_type      |------>| alert_type       |  (Signal triggers Alert)
+    | score            |       | message          |
+    +------------------+       +------------------+
+
+    +------------------+       +------------------+
+    |    Portfolio      |       |     Trade        |
+    +------------------+       +------------------+
+    | symbol           |<----->| symbol           |  (Trades update Portfolio)
+    | quantity         |       | trade_type       |
+    | avg_price        |       | quantity, price   |
+    +------------------+       +------------------+
+
+
+================================================================================
+4. SIGNAL ENGINE - HOW IT WORKS
+================================================================================
+
+File: app/signals/engine.py
+
+The signal engine is the core intelligence of StockMann. It analyzes the
+latest candle of OHLCV data and scores 6 technical indicators to generate
+a composite trading signal.
+
+FUNCTION: generate_signal(df, symbol, timeframe)
+
+INPUT:
+    - df: Pandas DataFrame with OHLCV data + calculated indicators
+    - symbol: Stock symbol (e.g., "RELIANCE.NS")
+    - timeframe: Data timeframe (e.g., "1d")
+
+SCORING SYSTEM:
+    Each indicator contributes a score from -2 to +2:
+
+    +-------------+------------------+--------+---------+------------------+
+    | Indicator   | Strong Buy (+2)  | Buy(+1)| Sell(-1)| Strong Sell (-2) |
+    +-------------+------------------+--------+---------+------------------+
+    | RSI         | RSI < 30         | < 40   | > 60    | > 70             |
+    | EMA Cross   | EMA12 > EMA26    | > 0%   | < 0%    | < -1%            |
+    |             | by > 1%          |        |         |                  |
+    | MACD Hist   | Histogram > 0.5  | > 0    | < 0     | < -0.5           |
+    | Bollinger   | At lower band    | --     | --      | At upper band    |
+    | Volume      | Vol ratio > 2x   | --     | --      | --               |
+    | Momentum    | > +5%            | --     | --      | < -5%            |
+    +-------------+------------------+--------+---------+------------------+
+
+COMPOSITE SCORE CALCULATION:
+    Total Score = Sum of all 6 indicator scores
+    Range: -12 to +12 (theoretical), normalized to -10 to +10
+
+SIGNAL DETERMINATION:
+    Score >= +3   ->  BUY signal
+    Score <= -3   ->  SELL signal
+    -3 < Score < +3 -> HOLD signal
+
+STRENGTH DETERMINATION:
+    |Score| >= 5  ->  "Strong"
+    |Score| < 5   ->  "Weak"
+
+OUTPUT:
+    {
+        "symbol": "RELIANCE.NS",
+        "signal": "BUY",
+        "strength": "Strong",
+        "score": 7,
+        "price": 1330.00,
+        "details": {
+            "rsi": +2,
+            "ema_cross": +1,
+            "macd": +2,
+            "bollinger": +2,
+            "volume": +1,
+            "momentum": -1
+        },
+        "indicators": {
+            "rsi": 28.5,
+            "ema_12": 1342.50,
+            "ema_26": 1330.00,
+            "macd_histogram": 3.25,
+            "bb_upper": 1405.00,
+            "bb_lower": 1298.00,
+            "volume_ratio": 2.3,
+            "momentum": 0.02
+        }
+    }
+
+
+================================================================================
+5. TECHNICAL INDICATORS EXPLAINED
+================================================================================
+
+File: app/indicators/technical.py
+
+The system calculates 9 technical indicators on every stock's OHLCV data:
+
+1. RSI (Relative Strength Index) - Period: 14
+   - Measures momentum on a 0-100 scale
+   - < 30 = Oversold (potential buy)
+   - > 70 = Overbought (potential sell)
+   - Formula: RSI = 100 - (100 / (1 + RS))
+     where RS = Average Gain / Average Loss over 14 periods
+
+2. EMA 12 (Exponential Moving Average - Short)
+   - 12-period EMA, reacts quickly to price changes
+   - Used in EMA crossover strategy
+
+3. EMA 26 (Exponential Moving Average - Long)
+   - 26-period EMA, smoother, shows longer trend
+   - When EMA12 > EMA26 = Bullish crossover
+
+4. SMA 20 (Simple Moving Average)
+   - 20-period average of closing prices
+   - Used as middle Bollinger Band
+
+5. MACD (Moving Average Convergence Divergence)
+   - Fast: 12, Slow: 26, Signal: 9
+   - MACD Line = EMA12 - EMA26
+   - Signal Line = 9-period EMA of MACD
+   - Histogram = MACD - Signal (positive = bullish)
+
+6. Bollinger Bands (Period: 20, Std Dev: 2)
+   - Upper Band = SMA20 + (2 x Standard Deviation)
+   - Lower Band = SMA20 - (2 x Standard Deviation)
+   - Price at lower band = potential bounce (buy)
+   - Price at upper band = potential reversal (sell)
+
+7. Volume Ratio
+   - Current Volume / Average Volume (20 periods)
+   - Ratio > 2.0 = Volume spike (significant move)
+
+8. Momentum
+   - (Current Close - Close 10 periods ago) / Close 10 periods ago
+   - Positive = upward momentum
+   - Negative = downward momentum
+
+9. MACD Signal Line
+   - 9-period EMA of the MACD line
+   - Crossovers with MACD generate trade signals
+
+
+================================================================================
+6. MARKET SCANNER
+================================================================================
+
+File: app/scanner/market_scanner.py
+
+The scanner analyzes all 20 watchlist stocks in parallel and provides
+a market-wide overview.
+
+FUNCTION: scan_market(symbols, timeframe, max_workers=5)
+
+PROCESS:
+    1. Uses ThreadPoolExecutor with 5 workers for parallel execution
+    2. For each stock: fetch data -> calculate indicators -> generate signal
+    3. Sort results: BUY first, then HOLD, then SELL (by score descending)
+    4. Return complete market analysis
+
+SPECIALIZED FILTERS:
+    - find_oversold()      -> Stocks with RSI < 30
+    - find_overbought()    -> Stocks with RSI > 70
+    - find_volume_spikes() -> Stocks with volume ratio > 2x
+    - find_breakouts()     -> Stocks with price > Bollinger upper band
+    - get_top_gainers()    -> Top 5 by momentum (ascending)
+    - get_top_losers()     -> Bottom 5 by momentum
+
+OUTPUT INCLUDES:
+    {
+        "total": 20,
+        "results": [...],           // All stock signals sorted by rank
+        "oversold": [...],          // RSI < 30 stocks
+        "overbought": [...],        // RSI > 70 stocks
+        "volume_spikes": [...],     // Volume > 2x stocks
+        "breakouts": [...],         // Price > BB upper
+        "top_gainers": [...],       // Top 5 gainers
+        "top_losers": [...]         // Top 5 losers
+    }
+
+
+================================================================================
+7. BACKTESTING ENGINE
+================================================================================
+
+File: app/backtest/backtester.py
+
+The backtester simulates trading on historical data using the signal engine
+to evaluate strategy performance.
+
+FUNCTION: run_backtest(df, symbol, initial_capital, buy_threshold, sell_threshold)
+
+PARAMETERS:
+    - df: Historical OHLCV DataFrame (typically 2 years daily)
+    - symbol: Stock to backtest
+    - initial_capital: Starting capital (default: 10,00,000 INR)
+    - buy_threshold: Minimum score to trigger BUY (default: +3)
+    - sell_threshold: Maximum score to trigger SELL (default: -3)
+
+TRADING LOGIC:
+    For each candle in historical data:
+        1. Calculate signal score using the signal engine
+        2. If score >= buy_threshold AND not holding:
+           -> BUY: Allocate 95% of capital at current price
+        3. If score <= sell_threshold AND holding:
+           -> SELL: Close entire position, calculate P&L
+        4. Track equity at each step
+
+METRICS RETURNED:
+    - initial_capital      : Starting amount
+    - final_equity         : Ending portfolio value
+    - total_return_pct     : Percentage return
+    - total_pnl            : Absolute profit/loss in INR
+    - total_trades         : Number of round-trip trades
+    - wins                 : Profitable trades count
+    - losses               : Losing trades count
+    - win_rate_pct         : Win percentage
+    - max_drawdown_pct     : Largest peak-to-trough decline
+    - equity_curve         : Array of {timestamp, equity} points
+    - trades               : Array of {type, price, shares, pnl, timestamp}
+
+
+================================================================================
+8. PORTFOLIO MANAGER
+================================================================================
+
+File: app/portfolio/manager.py
+
+The portfolio manager handles virtual paper trading with a default
+capital of 10,00,000 INR (10 Lakh).
+
+CLASS: PortfolioManager
+
+METHODS:
+
+    buy(symbol, quantity, price=None)
+        - If price is None, fetches live market price
+        - If holding exists: averages the entry price
+        - If new stock: creates new Portfolio entry
+        - Records Trade with type=BUY
+        - Returns: {symbol, quantity, price, total_cost}
+
+    sell(symbol, quantity, price=None)
+        - Validates sufficient holdings exist
+        - Calculates P&L = (sell_price - avg_cost) x quantity
+        - Updates Portfolio (reduces quantity)
+        - Removes Portfolio entry if quantity reaches 0
+        - Records Trade with type=SELL and P&L
+        - Returns: {symbol, quantity, price, pnl}
+
+    get_holdings()
+        - Fetches all Portfolio entries
+        - Gets live prices for each stock
+        - Calculates: current_value, pnl, pnl_pct
+        - Returns list of holdings with live data
+
+    get_trade_history(symbol=None)
+        - Returns all non-backtest trades
+        - Optionally filtered by symbol
+        - Ordered by most recent first
+
+    get_summary()
+        - Aggregates: total_invested, total_value, total_pnl
+        - Includes pnl_pct and number of holdings
+        - Returns complete portfolio overview
+
+
+================================================================================
+9. TELEGRAM ALERT SYSTEM
+================================================================================
+
+File: app/alerts/telegram_alert.py
+
+The alert system sends trading signals to Telegram with smart
+deduplication to prevent alert spam.
+
+ALERT TYPES:
+    1. Signal Alert  -> BUY/SELL signal with details
+    2. Price Alert   -> Price threshold crossed
+    3. Trend Alert   -> Trend change detected
+
+DEDUPLICATION:
+    - In-memory cache tracks: {symbol: alert_type}
+    - 30-minute cooldown between same alert for same stock
+    - Prevents flooding during volatile markets
+
+MESSAGE FORMAT (Signal Alert):
+    ===========================
+    STOCKMANN SIGNAL ALERT
+    ===========================
+    Symbol:   RELIANCE
+    Signal:   BUY (Strong)
+    Score:    +7 / 10
+    RSI:      28.5
+    MACD:     +3.25
+    Price:    Rs.1,330.00
+    Time:     2026-04-10 14:30 IST
+    ===========================
+
+INTEGRATION:
+    - Called automatically when signal engine generates BUY or SELL
+    - HOLD signals do NOT trigger alerts
+    - Runs in background thread with async event loop
+    - Logs all sent alerts to AlertLog database table
+
+SETUP REQUIRED:
+    - Create bot via @BotFather on Telegram
+    - Set TELEGRAM_BOT_TOKEN in .env or profile settings
+    - Set TELEGRAM_CHAT_ID in .env or profile settings
+
+
+================================================================================
+10. API ENDPOINTS REFERENCE
+================================================================================
+
+File: app/api/routes.py
+
+BASE URL: http://localhost:8000/api
+
+AUTHENTICATION:
+    POST   /api/auth/signup         -> Create account
+           Body: {username, password, name, email}
+           Returns: {user_id, name, avatar_color}
+
+    POST   /api/auth/login          -> Login
+           Body: {username, password}
+           Returns: {user_id, name, avatar_color}
+
+STOCK DATA:
+    GET    /api/stock/{symbol}      -> OHLCV data
+           Params: ?timeframe=1d&limit=200
+           Returns: {data: [{timestamp, open, high, low, close, volume}]}
+
+    POST   /api/stock/{symbol}/fetch -> Save stock data to DB
+
+    GET    /api/stock/{symbol}/price -> Latest price only
+           Returns: {symbol, price, change_pct}
+
+    GET    /api/stock/{symbol}/indicators -> OHLCV + all indicators
+           Returns: {data: [{timestamp, open, high, low, close, volume,
+                    rsi, ema_12, ema_26, sma_20, macd, macd_signal,
+                    macd_histogram, bb_upper, bb_lower, volume_ratio,
+                    momentum}]}
+
+SEARCH:
+    GET    /api/search?q={query}    -> Yahoo Finance autocomplete
+           Returns: {results: [{symbol, name, exchange}]}
+
+SIGNALS:
+    GET    /api/signal/{symbol}     -> Generate trading signal
+           Params: ?timeframe=1d
+           Returns: {symbol, signal, strength, score, price,
+                    details, indicators}
+
+SCANNER:
+    GET    /api/scanner             -> Scan all watchlist stocks
+           Params: ?timeframe=1d
+           Returns: {total, results[], oversold[], overbought[],
+                    volume_spikes[], breakouts[], top_gainers[],
+                    top_losers[]}
+
+BACKTESTING:
+    GET    /api/backtest/{symbol}   -> Run backtest
+           Params: ?timeframe=1d&capital=1000000
+                   &buy_threshold=3&sell_threshold=-3
+           Returns: {initial_capital, final_equity, total_return_pct,
+                    total_pnl, wins, losses, win_rate_pct,
+                    max_drawdown_pct, equity_curve[], trades[]}
+
+PORTFOLIO:
+    POST   /api/portfolio/buy       -> Buy shares
+           Params: ?symbol=RELIANCE.NS&quantity=10&price=1330
+
+    POST   /api/portfolio/sell      -> Sell shares
+           Params: ?symbol=RELIANCE.NS&quantity=5
+
+    GET    /api/portfolio            -> Portfolio summary
+           Returns: {total_invested, total_value, total_pnl,
+                    total_pnl_pct, holdings[]}
+
+    GET    /api/portfolio/trades     -> Trade history
+           Returns: [{symbol, type, quantity, price, pnl, timestamp}]
+
+WATCHLIST:
+    GET    /api/watchlist            -> Default watchlist symbols
+           Returns: {symbols: ["RELIANCE.NS", "TCS.NS", ...]}
+
+PROFILE:
+    GET    /api/profile              -> Get user profile
+    PUT    /api/profile              -> Update profile
+    GET    /api/profile/stats        -> Activity statistics
+
+
+================================================================================
+11. FRONTEND ARCHITECTURE
+================================================================================
+
+The frontend is built with vanilla JavaScript (no framework), using Plotly.js
+for interactive charting and a glassmorphic dark theme.
+
+STATE MANAGEMENT (Global Variables):
+    currentSymbol     = 'RELIANCE.NS'   // Active stock
+    currentTimeframe  = '1d'            // Active timeframe
+    currentView       = 'chart'         // Active dashboard view
+    scannerCache      = null            // Cached scanner results
+    priceAlerts       = []              // Client-side price alerts
+    tradeModalType    = 'BUY'           // Trade modal mode
+    compareMode       = false           // Stock comparison mode
+    currentChartData  = null            // Current OHLCV data
+
+CHARTING (Plotly.js):
+    - Candlestick chart (main)  -> OHLCV data with green/red candles
+    - Volume chart              -> Bar chart colored by close vs open
+    - RSI chart                 -> Line chart with 30/50/70 levels
+    - MACD chart                -> Histogram + MACD line + Signal line
+
+DESIGN SYSTEM:
+    Colors:
+        Background: #0B0E11 (base), layered with rgba transparency
+        Text: #E8ECF1 (primary) -> #A0A7B8 -> #6B7280 -> #4B5263
+        Green: #00E676 (bullish)
+        Red: #FF1744 (bearish)
+        Blue: #2979FF (accent)
+        Purple: #8B5CF6 (secondary accent)
+        Amber: #F59E0B (warnings)
+
+    Typography:
+        UI Font: Inter (300-800 weights)
+        Data Font: JetBrains Mono (monospace for numbers)
+
+    Effects:
+        Glassmorphism: backdrop-filter blur(12-16px)
+        Borders: rgba transparency layers
+        Hover: Smooth transitions and subtle glows
+
+
+================================================================================
+12. DASHBOARD VIEWS (6 VIEWS)
+================================================================================
+
+The terminal dashboard has 6 switchable views, all in a single page:
+
+VIEW 1: TERMINAL (Chart View) - Default
+    - Live candlestick chart with OHLCV data
+    - Sub-charts: Volume, RSI, MACD
+    - Timeframe selector: 1m, 5m, 15m, 1H, 1D
+    - Signal chip showing BUY/SELL/HOLD
+    - Compare mode (overlay two stocks)
+    - Export to CSV
+    - Right panel: Signal analysis, indicators, breakdown, price alerts
+
+VIEW 2: HEAT MAP
+    - Color-coded grid of all 20+ stocks
+    - Green intensity = bullish, Red intensity = bearish
+    - Metrics: Signal Score, Momentum, or RSI
+    - Fear & Greed gauge (semicircular SVG gauge)
+    - Click any cell to load that stock in Terminal view
+
+VIEW 3: SCREENER
+    - Parallel scan of all watchlist stocks
+    - Summary cards: Total, Buys, Sells, Holds, Oversold, Overbought
+    - Filter tabs: All, Buys, Sells, Gainers, Losers, Volume
+    - Data table: Symbol, Price, Signal, Strength, Score, RSI, MACD, etc.
+    - Export scanner results to CSV
+
+VIEW 4: BACKTEST
+    - Configure: Symbol, Capital, Buy threshold, Sell threshold
+    - Results: Total Return %, Net P&L, Win Rate, Max Drawdown
+    - Equity curve chart (line with fill)
+    - Detailed trade log table
+
+VIEW 5: PORTFOLIO
+    - Summary cards: Total Invested, Current Value, P&L, Return %
+    - Holdings table with live prices and unrealized P&L
+    - Trade history table
+    - Buy/Sell modal for executing trades
+
+VIEW 6: PROFILE (NEW - inside dashboard)
+    - User avatar with initials and color picker
+    - Stats: Total Trades, Buy Orders, Sell Orders, Signals, Alerts
+    - Settings form: Name, Email, Phone, Experience, Risk, Capital, Bio
+    - Telegram alert configuration
+    - Recent signals activity log
+    - Logout button
+
+
+================================================================================
+13. AUTHENTICATION FLOW
+================================================================================
+
+The authentication system uses client-side localStorage:
+
+SIGNUP FLOW:
+    1. User visits /login page
+    2. Fills in: Full Name, Email, Username, Password
+    3. POST /api/auth/signup creates account in UserProfile table
+    4. Response: {user_id, name, avatar_color}
+    5. Saved to localStorage as 'sm_user'
+    6. Redirect to /terminal
+
+LOGIN FLOW:
+    1. User visits /login page
+    2. Fills in: Username, Password
+    3. POST /api/auth/login validates credentials
+    4. Response: {user_id, name, avatar_color}
+    5. Saved to localStorage as 'sm_user'
+    6. Redirect to /terminal
+
+SESSION CHECK:
+    - Landing page checks localStorage('sm_user')
+    - If logged in: shows "Open Terminal" button instead of "Sign In"
+    - /login page: if already logged in, redirects to /terminal
+    - /profile: redirects to /terminal (profile is now inside dashboard)
+
+LOGOUT:
+    - Profile view has "Logout" button
+    - Clears localStorage('sm_user')
+    - Redirects to landing page (/)
+
+
+================================================================================
+14. SCHEDULER & AUTO-REFRESH
+================================================================================
+
+File: app/scheduler.py
+
+BACKGROUND SCHEDULER (APScheduler):
+    - Fetches stock data at configurable intervals
+    - FETCH_INTERVAL_MINUTES = 5 (data refresh)
+    - SCAN_INTERVAL_MINUTES = 15 (market scan)
+    - Starts on app startup, stops on shutdown
+
+FRONTEND AUTO-REFRESH:
+    - Chart view refreshes every 60 seconds
+    - Watchlist prices update on manual refresh
+    - Scanner results cached until next scan
+
+
+================================================================================
+15. CONFIGURATION & SETTINGS
+================================================================================
+
+File: config/settings.py
+
+DEFAULT WATCHLIST (20 NSE Stocks):
+    RELIANCE.NS, TCS.NS, INFY.NS, HDFCBANK.NS, ICICIBANK.NS,
+    HINDUNILVR.NS, ITC.NS, SBIN.NS, BHARTIARTL.NS, KOTAKBANK.NS,
+    LT.NS, AXISBANK.NS, ASIANPAINT.NS, MARUTI.NS, TATAMOTORS.NS,
+    WIPRO.NS, SUNPHARMA.NS, TITAN.NS, BAJFINANCE.NS, NESTLEIND.NS
+
+TIMEFRAMES:
+    1m  -> period: 7 days,   interval: 1 minute
+    5m  -> period: 60 days,  interval: 5 minutes
+    15m -> period: 60 days,  interval: 15 minutes
+    1h  -> period: 730 days, interval: 1 hour
+    1d  -> period: 2 years,  interval: 1 day
+
+INDICATOR DEFAULTS:
+    RSI Period:       14
+    EMA Short:        12
+    EMA Long:         26
+    SMA Period:       20
+    MACD Fast:        12
+    MACD Slow:        26
+    MACD Signal:      9
+    Bollinger Period: 20
+    Bollinger Std:    2
+
+SIGNAL THRESHOLDS:
+    RSI Oversold:     30
+    RSI Overbought:   70
+    Volume Spike:     2.0x average
+
+PORTFOLIO:
+    Initial Capital:  10,00,000 INR (10 Lakh)
+
+SERVER:
+    Host: 0.0.0.0
+    Port: 8000
+
+ENVIRONMENT VARIABLES (.env file):
+    DATABASE_URL        = sqlite:///stock_mann.db
+    TELEGRAM_BOT_TOKEN  = (your bot token)
+    TELEGRAM_CHAT_ID    = (your chat ID)
+    API_HOST            = 0.0.0.0
+    API_PORT            = 8000
+
+
+================================================================================
+16. HOW TO RUN
+================================================================================
+
+PREREQUISITES:
+    - Python 3.10 or higher
+    - pip (Python package manager)
+
+INSTALLATION:
+    1. Navigate to project directory:
+       cd stock_mann
+
+    2. Install dependencies:
+       pip install -r requirements.txt
+
+    3. (Optional) Create .env file for Telegram alerts:
+       TELEGRAM_BOT_TOKEN=your_bot_token
+       TELEGRAM_CHAT_ID=your_chat_id
+
+    4. Run the application:
+       python main.py
+
+    5. Open in browser:
+       http://localhost:8000
+
+PAGE ROUTES:
+    /           -> Landing page (marketing, VFX effects)
+    /login      -> Sign In / Create Account
+    /terminal   -> Main dashboard (all 6 views)
+    /profile    -> Redirects to /terminal (profile is inside dashboard)
+
+KEYBOARD SHORTCUTS (in Terminal):
+    Ctrl + K    -> Search symbol
+    1-5         -> Switch timeframe (1m, 5m, 15m, 1h, 1d)
+    F           -> Toggle fullscreen
+    S           -> Open Screener
+    B           -> Open Backtest
+    P           -> Open Portfolio
+    H           -> Open Heat Map
+    Esc         -> Close modals
+    ?           -> Show shortcuts help
+
+
+================================================================================
+                        BUILT BY THE TEAM
+================================================================================
+
+    Manthan Ganvir  /  Priyanka Nanwatkar  /  Akash Lingayat  /  Montu Sharma
+
+================================================================================
+                       END OF DETAILED EXPLANATION
+================================================================================
