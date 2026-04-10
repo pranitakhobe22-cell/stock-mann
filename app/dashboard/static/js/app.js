@@ -32,7 +32,11 @@ document.addEventListener('DOMContentLoaded', () => {
     initEvents();
     initClock();
     loadWatchlistPrices();
-    loadStock(currentSymbol, currentTimeframe);
+    loadStock(currentSymbol, currentTimeframe).then(() => {
+        // Hide loading screen after first stock loads
+        const loader = document.getElementById('app-loader');
+        if (loader) setTimeout(() => loader.classList.add('hidden'), 300);
+    });
     startAutoRefresh();
 });
 
@@ -188,9 +192,15 @@ function toggleFullscreen() {
 // ── View Switch ──
 function switchView(view) {
     currentView = view;
+    // Desktop nav
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     const btn = document.querySelector(`.nav-btn[data-view="${view}"]`);
     if (btn) btn.classList.add('active');
+    // Mobile bottom bar
+    document.querySelectorAll('.mob-tab').forEach(b => b.classList.remove('active'));
+    const mobBtn = document.querySelector(`.mob-tab[data-view="${view}"]`);
+    if (mobBtn) mobBtn.classList.add('active');
+    // Switch panel
     document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
     document.getElementById(`view-${view}`).classList.add('active');
     if (view === 'screener' && !scannerCache) runScanner();
@@ -198,6 +208,8 @@ function switchView(view) {
     if (view === 'heatmap' && scannerCache) renderHeatMap();
     if (view === 'chart') setTimeout(() => resizeCharts(), 50);
     if (view === 'profile') { loadProfile(); loadProfileStats(); }
+    // Scroll to top on mobile
+    window.scrollTo(0, 0);
 }
 
 function resizeCharts() {
