@@ -70,7 +70,10 @@ body {
     background: var(--bg-0);
     color: var(--t1);
     overflow: hidden;
+    overflow-x: hidden;
     height: 100vh;
+    width: 100%;
+    max-width: 100vw;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
@@ -1823,15 +1826,25 @@ textarea {
 
 /* ═══ MOBILE (phones + small tablets) ═══ */
 @media (max-width: 900px) {
+    /* Body: allow scroll on mobile */
+    body { overflow: visible; overflow-x: hidden; height: auto; }
+
     /* Show bottom bar, hide desktop nav */
     .mobile-bottom-bar { display: flex; }
     .mobile-search-btn { display: flex; }
 
-    /* Layout */
-    .app-layout { grid-template-columns: 1fr; height: auto; }
+    /* Layout - CRITICAL: make content scroll properly */
+    .app-layout { grid-template-columns: 1fr; height: auto; overflow: visible; }
     .sidebar, .right-panel { display: none; }
     .ticker-bar { display: none; }
-    .main-content { overflow-y: auto; height: calc(100vh - 46px); padding-bottom: 64px; }
+    .main-content {
+        overflow-y: auto;
+        overflow-x: hidden;
+        height: calc(100vh - 46px - 56px);
+        padding-bottom: 20px;
+    }
+    .view-panel { height: auto; overflow: visible; }
+    .view-panel.active { display: flex; }
 
     /* Topbar: compact logo + search only */
     .topbar { height: 46px; padding: 0 12px; gap: 8px; }
@@ -1851,12 +1864,14 @@ textarea {
     .chart-tools { display: none; }
     .signal-chip { align-self: flex-start; }
 
-    /* Charts */
-    .chart-wrapper { height: 260px; }
-    .chart-area { height: 100% !important; }
+    /* Charts - force full width and proper sizing */
+    .chart-wrapper { height: 260px; width: 100%; }
+    .chart-area { height: 260px !important; width: 100% !important; }
+    .chart-area .plotly { width: 100% !important; }
+    .chart-area .js-plotly-plot { width: 100% !important; }
     .subchart-row { grid-template-columns: 1fr; height: auto; }
-    .subchart-panel { height: 130px; }
-    .subchart-area { height: 100% !important; }
+    .subchart-panel { height: 140px; width: 100%; }
+    .subchart-area { height: 140px !important; width: 100% !important; }
 
     /* Scanner */
     .scanner-summary { grid-template-columns: repeat(3, 1fr); gap: 6px; }

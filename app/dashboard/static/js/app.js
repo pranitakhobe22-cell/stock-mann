@@ -206,7 +206,7 @@ function switchView(view) {
     if (view === 'screener' && !scannerCache) runScanner();
     if (view === 'portfolio') loadPortfolio();
     if (view === 'heatmap' && scannerCache) renderHeatMap();
-    if (view === 'chart') setTimeout(() => resizeCharts(), 50);
+    if (view === 'chart') setTimeout(() => resizeCharts(), 100);
     if (view === 'profile') { loadProfile(); loadProfileStats(); }
     // Scroll to top on mobile
     window.scrollTo(0, 0);
@@ -218,6 +218,11 @@ function resizeCharts() {
         if (el && el.data) Plotly.Plots.resize(el);
     });
 }
+
+// Auto-resize charts on window resize / orientation change
+window.addEventListener('resize', () => {
+    if (currentView === 'chart') setTimeout(resizeCharts, 150);
+});
 
 // ═══ TICKER BAR ═══
 function buildTicker(results) {
